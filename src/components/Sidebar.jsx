@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
-export default function Sidebar({ activeTab, setActiveTab, refreshTrigger, user = { name: 'Justine Salinas', role: 'Lead Developer' } }) {
+export default function Sidebar({ activeTab, setActiveTab, refreshTrigger, user = { name: 'Admin', role: 'Project Development' } }) {
   const [projectCount, setProjectCount] = useState(0);
 
   useEffect(() => {
