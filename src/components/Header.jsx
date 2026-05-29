@@ -102,6 +102,7 @@ export default function Header({ activeTab, setActiveTab, setSelectedProject, re
       case 'finances': return 'Client Billing & Ledger';
       case 'expenses': return 'Operating Expenditure';
       case 'catalogue': return 'Template Registry';
+      case 'personal-projects': return 'Personal & Side Projects';
       case 'calendar': return 'Sprint Milestones';
       case 'team': return 'CDG Engineering';
       default: return 'CDG Console';

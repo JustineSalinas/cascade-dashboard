@@ -6,6 +6,7 @@ import ProjectsView from './components/ProjectsView';
 import FinancesView from './components/FinancesView';
 import ExpensesView from './components/ExpensesView';
 import CatalogueView from './components/CatalogueView';
+import PersonalProjectsView from './components/PersonalProjectsView';
 import CalendarView from './components/CalendarView';
 import TeamView from './components/TeamView';
 
@@ -90,6 +91,14 @@ function App() {
       case 'catalogue':
         return (
           <CatalogueView
+            activeTab={activeTab}
+            refreshTrigger={refreshTrigger}
+            triggerRefresh={triggerRefresh}
+          />
+        );
+      case 'personal-projects':
+        return (
+          <PersonalProjectsView
             activeTab={activeTab}
             refreshTrigger={refreshTrigger}
             triggerRefresh={triggerRefresh}
