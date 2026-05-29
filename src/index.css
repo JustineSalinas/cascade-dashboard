@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Custom palette for CDG developer platform: Dark Obsidian with Violet accents */
+  --color-slate-950: #06050b; /* Rich obsidian base */
+  --color-slate-900: #0d0c15; /* Card obsidian */
+  --color-slate-850: #151322; /* Mid highlight */
+  --color-slate-800: #1d1b30; /* Borders */
+  --color-slate-700: #292644; /* Borders active */
+  --color-slate-500: #625e83; /* Soft text */
+  --color-slate-400: #8c88ab; /* Secondary text */
+  --color-slate-300: #bbb8d3; /* Active label */
+  --color-slate-100: #f5f4fa; /* Primary high-contrast text */
+  
+  --color-violet-500: #8b5cf6; /* Primary violet */
+  --color-violet-600: #7c3aed; /* Violet hover */
+  --color-violet-400: #a78bfa; /* Violet light */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background-color: #06050b;
+  color: #f5f4fa;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #06050b;
+}
+::-webkit-scrollbar-thumb {
+  background: #1d1b30;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #292644;
+}
+
+/* Glassmorphism layouts */
+.glass-panel {
+  background: rgba(13, 12, 21, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.glass-card {
+  background: rgba(13, 12, 21, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: rgba(13, 12, 21, 0.8);
+  border-color: rgba(139, 92, 246, 0.25);
+  box-shadow: 0 12px 30px -10px rgba(139, 92, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+/* SVG Chart Animations */
+.chart-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 2s ease-out forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Pulse effects */
+.pulse-emerald {
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: pulseEmerald 2s infinite;
+}
+
+@keyframes pulseEmerald {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* Fade In animation utility */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
