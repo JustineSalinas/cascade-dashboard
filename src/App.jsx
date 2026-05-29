@@ -15,7 +15,7 @@ import PricingView from './components/PricingView';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState(null);
-  const [currency, setCurrency] = useState('USD'); // Global currency toggled between USD and PHP
+  const [currency, setCurrency] = useState('PHP'); // Global currency toggled between USD and PHP
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('cdg_theme') || 'dark';
   });
@@ -107,7 +107,7 @@ function App() {
           />
         );
       case 'pricing':
-        return <PricingView />;
+        return <PricingView currency={currency} />;
       case 'personal-projects':
         return (
           <PersonalProjectsView

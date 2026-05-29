@@ -104,7 +104,7 @@ export default function Header({ activeTab, setActiveTab, setSelectedProject, re
       case 'catalogue': return 'Template Registry';
       case 'personal-projects': return 'Personal & Side Projects';
       case 'calendar': return 'Sprint Milestones';
-      case 'team': return 'CDG Engineering';
+      case 'team': return 'Cascade Development Team';
       default: return 'CDG Console';
     }
   };

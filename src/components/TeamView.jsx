@@ -127,7 +127,7 @@ export default function TeamView({ activeTab, refreshTrigger, triggerRefresh }) 
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">CDG Engineering Team</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Cascade Development Team</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Manage developer profiles, workloads, availability status, and workspace assignments.
           </p>
@@ -241,16 +241,16 @@ export default function TeamView({ activeTab, refreshTrigger, triggerRefresh }) 
       ) : (
         <div className="text-center py-24 glass-panel rounded-xl border border-slate-900 flex flex-col items-center justify-center text-slate-500 max-w-xl mx-auto">
           <Users size={40} className="mb-3 text-slate-700 animate-pulse" />
-          <span className="text-sm font-bold block mb-1">No Developers Registered</span>
+          <span className="text-sm font-bold block mb-1">No Members Registered</span>
           <p className="text-xs text-slate-500 leading-relaxed max-w-sm px-4 mb-6">
-            Your CDG developer database is currently empty. Get started by registering your engineering team.
+            Your Cascade Development Team roster is currently empty. Get started by registering your team members.
           </p>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-xs font-bold rounded-lg text-white transition-all cursor-pointer"
           >
             <UserPlus size={14} />
-            <span>Add Your First Engineer</span>
+            <span>Add Your First Member</span>
           </button>
         </div>
       )}
@@ -285,14 +285,71 @@ export default function TeamView({ activeTab, refreshTrigger, triggerRefresh }) 
 
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Role / Title</label>
-                <input
-                  type="text"
+                <select
                   required
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value)}
-                  placeholder="e.g. Lead Frontend Developer"
                   className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
-                />
+                >
+                  <option value="">— Select Role —</option>
+                  <optgroup label="Leadership">
+                    <option value="Chief Executive Officer">Chief Executive Officer (CEO)</option>
+                    <option value="Chief Technology Officer">Chief Technology Officer (CTO)</option>
+                    <option value="Chief Operating Officer">Chief Operating Officer (COO)</option>
+                    <option value="Project Director">Project Director</option>
+                    <option value="Project Manager">Project Manager</option>
+                    <option value="Product Manager">Product Manager</option>
+                    <option value="Scrum Master">Scrum Master</option>
+                  </optgroup>
+                  <optgroup label="Development">
+                    <option value="Lead Full-Stack Developer">Lead Full-Stack Developer</option>
+                    <option value="Senior Full-Stack Developer">Senior Full-Stack Developer</option>
+                    <option value="Full-Stack Developer">Full-Stack Developer</option>
+                    <option value="Lead Frontend Developer">Lead Frontend Developer</option>
+                    <option value="Senior Frontend Developer">Senior Frontend Developer</option>
+                    <option value="Frontend Developer">Frontend Developer</option>
+                    <option value="Lead Backend Developer">Lead Backend Developer</option>
+                    <option value="Senior Backend Developer">Senior Backend Developer</option>
+                    <option value="Backend Developer">Backend Developer</option>
+                    <option value="Mobile Developer (iOS)">Mobile Developer (iOS)</option>
+                    <option value="Mobile Developer (Android)">Mobile Developer (Android)</option>
+                    <option value="React Native Developer">React Native Developer</option>
+                    <option value="DevOps Engineer">DevOps Engineer</option>
+                    <option value="Cloud Infrastructure Engineer">Cloud Infrastructure Engineer</option>
+                    <option value="Database Administrator">Database Administrator</option>
+                    <option value="API Integration Specialist">API Integration Specialist</option>
+                  </optgroup>
+                  <optgroup label="Design">
+                    <option value="Lead UI/UX Designer">Lead UI/UX Designer</option>
+                    <option value="Senior UI/UX Designer">Senior UI/UX Designer</option>
+                    <option value="UI/UX Designer">UI/UX Designer</option>
+                    <option value="Graphic Designer">Graphic Designer</option>
+                    <option value="Motion Designer">Motion Designer</option>
+                    <option value="Brand Designer">Brand Designer</option>
+                  </optgroup>
+                  <optgroup label="Quality Assurance">
+                    <option value="Lead QA Engineer">Lead QA Engineer</option>
+                    <option value="Senior QA Engineer">Senior QA Engineer</option>
+                    <option value="QA Engineer">QA Engineer</option>
+                    <option value="Manual Tester">Manual Tester</option>
+                    <option value="Automation Test Engineer">Automation Test Engineer</option>
+                  </optgroup>
+                  <optgroup label="Data & Analytics">
+                    <option value="Data Scientist">Data Scientist</option>
+                    <option value="Data Analyst">Data Analyst</option>
+                    <option value="Business Intelligence Analyst">Business Intelligence Analyst</option>
+                    <option value="ML Engineer">ML Engineer</option>
+                  </optgroup>
+                  <optgroup label="Support & Operations">
+                    <option value="Technical Support Engineer">Technical Support Engineer</option>
+                    <option value="Systems Analyst">Systems Analyst</option>
+                    <option value="Business Analyst">Business Analyst</option>
+                    <option value="IT Administrator">IT Administrator</option>
+                    <option value="Security Engineer">Security Engineer</option>
+                    <option value="Consultant">Consultant</option>
+                    <option value="Intern / Trainee">Intern / Trainee</option>
+                  </optgroup>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
