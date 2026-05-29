@@ -154,8 +154,8 @@ export default function PersonalProjectsView({ activeTab, refreshTrigger, trigge
 
       {/* Add Personal Project Modal */}
       {showPersonalModal && createPortal(
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-panel w-full max-w-md rounded-2xl border border-slate-800 p-6 shadow-2xl animate-fade-in-up relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 pl-64 animate-fade-in">
+          <div className="glass-panel w-full max-w-lg rounded-2xl border border-slate-800 p-6 shadow-2xl animate-fade-in-up relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowPersonalModal(false)}
               className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg"
