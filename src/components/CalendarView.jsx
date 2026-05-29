@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
-export default function CalendarView({ activeTab, refreshTrigger, triggerRefresh }) {
+export default function CalendarView({ activeTab, refreshTrigger, triggerRefresh, formatAmount }) {
   // We will display a static month (May 2026) to align with our local time (2026-05-29) and make it look clean
   // but allow moving months if wanted or keep it fixed on May 2026 with fully interactive details
   const [currentYear, setCurrentYear] = useState(2026);
@@ -146,8 +146,8 @@ export default function CalendarView({ activeTab, refreshTrigger, triggerRefresh
           sourceType: 'invoice',
           type: 'finance',
           title: `Invoice Due: ${inv.invoiceNumber}`,
-          description: `Client: ${inv.client}. Payment of $${inv.amount.toLocaleString()} is due.`,
-          value: `$${inv.amount.toLocaleString()}`
+          description: `Client: ${inv.client}. Payment of ${formatAmount(inv.amount)} is due.`,
+          value: formatAmount(inv.amount)
         });
       }
     });
@@ -239,7 +239,7 @@ export default function CalendarView({ activeTab, refreshTrigger, triggerRefresh
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Milestone Calendar & Scheduler</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)', fontSize: '24px' }}>Milestone Calendar & Scheduler</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Track code freeze dates, deploy operations, client invoice deadlines, and stand-ups.
           </p>
@@ -253,7 +253,7 @@ export default function CalendarView({ activeTab, refreshTrigger, triggerRefresh
           
           {/* Calendar header controls */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-900 mb-4">
-            <h3 className="text-sm font-bold text-slate-200">
+            <h3 className="text-sm font-bold text-slate-200" style={{ fontFamily: 'var(--font-display)', fontSize: '18px' }}>
               {monthNames[currentMonth]} {currentYear}
             </h3>
             

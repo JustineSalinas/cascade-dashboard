@@ -32,6 +32,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
   const [formStatus, setFormStatus] = useState('pipeline');
   const [formDueDate, setFormDueDate] = useState('');
   const [formTasks, setFormTasks] = useState(['']); // initial one empty task
+  const [formPhase, setFormPhase] = useState('requirements'); // project phase
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
       manager: formManager,
       category: formCategory || 'General Development',
       status: formStatus,
+      phase: formPhase,
       dueDate: formDueDate || new Date().toISOString().split('T')[0],
       docsCount: editingId ? (projects.find(p => p.id === editingId)?.docsCount || 4) : 4,
       tasks: editingId ? (projects.find(p => p.id === editingId)?.tasks || formattedTasks) : formattedTasks,
@@ -103,6 +105,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
     setFormManager('');
     setFormCategory('');
     setFormStatus('pipeline');
+    setFormPhase('requirements');
     setFormDueDate('');
     setFormTasks(['']);
     setEditingId(null);
@@ -116,6 +119,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
     setFormManager(project.manager);
     setFormCategory(project.category);
     setFormStatus(project.status);
+    setFormPhase(project.phase || 'requirements');
     setFormDueDate(project.dueDate);
     setFormTasks(project.tasks.map(t => t.text));
     setShowAddModal(true);
@@ -282,7 +286,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                         Due: {p.dueDate}
                       </span>
                     </div>
-                    <h3 className="text-sm font-bold text-slate-100 leading-tight mb-2 truncate">
+                    <h3 className="text-sm font-bold text-slate-100 leading-tight mb-2 truncate" style={{ fontFamily: 'var(--font-display)', fontSize: '16px' }}>
                       {p.name}
                     </h3>
 
@@ -529,6 +533,23 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                     className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Development Cycle Phase</label>
+                <select
+                  value={formPhase}
+                  onChange={(e) => setFormPhase(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
+                >
+                  <option value="requirements">Requirements</option>
+                  <option value="solutioning">Solutioning</option>
+                  <option value="build">Build</option>
+                  <option value="testing">Testing</option>
+                  <option value="production">Production</option>
+                  <option value="stabilization">Stabilization</option>
+                  <option value="closed">Closed</option>
+                </select>
               </div>
 
               {/* Tasks Builder (Only for NEW workspaces) */}

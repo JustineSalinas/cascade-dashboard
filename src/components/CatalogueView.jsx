@@ -104,7 +104,7 @@ export default function CatalogueView({ activeTab, refreshTrigger, triggerRefres
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Catalogue Registry & Assets</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)', fontSize: '24px' }}>Catalogue Registry & Assets</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Internal shared library assets, boilerplate templates, and core API credentials directories.
           </p>

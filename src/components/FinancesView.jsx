@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
-export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh }) {
+export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh, formatAmount }) {
   const [invoices, setInvoices] = useState([]);
   const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +128,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Ledger Console & Invoicing</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)', fontSize: '24px' }}>Ledger Console & Invoicing</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Issue billings to clients, manage payment receipts, and audit contract values.
           </p>
@@ -156,8 +156,8 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
         <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Contract Volume</span>
-            <h3 className="text-base font-black text-slate-100 mt-1 block">
-              ${invoices.reduce((a, b) => a + b.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <h3 className="text-base font-black text-slate-100 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>
+              {formatAmount(invoices.reduce((a, b) => a + b.amount, 0))}
             </h3>
           </div>
           <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
@@ -168,8 +168,8 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
         <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Settled Claims</span>
-            <h3 className="text-base font-black text-emerald-400 mt-1 block">
-              ${invoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <h3 className="text-base font-black text-emerald-400 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>
+              {formatAmount(invoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.amount, 0))}
             </h3>
           </div>
           <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -180,8 +180,8 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
         <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Accounts Receivable</span>
-            <h3 className="text-base font-black text-amber-400 mt-1 block">
-              ${invoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <h3 className="text-base font-black text-amber-400 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>
+              {formatAmount(invoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.amount, 0))}
             </h3>
           </div>
           <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
@@ -256,7 +256,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
                       </td>
                       <td className="px-6 py-4 text-slate-500">{inv.issuedDate}</td>
                       <td className="px-6 py-4 text-slate-500">{inv.dueDate}</td>
-                      <td className="px-6 py-4 font-extrabold text-slate-200">${inv.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 font-extrabold text-slate-200">{formatAmount(inv.amount)}</td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => handleToggleStatus(inv.id, inv.status)}

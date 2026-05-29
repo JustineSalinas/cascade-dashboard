@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  DollarSign, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Wallet, 
-  Activity, 
-  Calendar,
-  AlertCircle,
-  FolderDot
-} from 'lucide-react';
 import { dbService } from '../services/db';
 
-export default function DashboardView({ activeTab, setActiveTab, setSelectedProject, refreshTrigger }) {
+export default function DashboardView({ activeTab, setActiveTab, setSelectedProject, refreshTrigger, formatAmount, currency }) {
   const [stats, setStats] = useState({
     totalRevenue: 0,
     cashCollected: 0,
@@ -19,415 +9,577 @@ export default function DashboardView({ activeTab, setActiveTab, setSelectedProj
     totalCosts: 0,
     netCashFlow: 0
   });
-  
-  const [pipeline, setPipeline] = useState({
-    pipeline: 0,
-    active: 0,
-    review: 0,
-    completed: 0
-  });
 
-  const [projectEarnings, setProjectEarnings] = useState([]);
-  const [upcomingItems, setUpcomingItems] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [upcomingMilestones, setUpcomingMilestones] = useState([]);
+  const [activeQuickWinsFilter, setActiveQuickWinsFilter] = useState('active'); // 'active' or 'all'
 
   useEffect(() => {
-    // 1. Fetch DB records
-    const invoices = dbService.getInvoices();
-    const expenses = dbService.getExpenses();
-    const projects = dbService.getProjects();
+    try {
+      const dbProjects = dbService.getProjects();
+      const dbExpenses = dbService.getExpenses();
+      const dbInvoices = dbService.getInvoices();
+      const dbTeam = dbService.getTeam();
 
-    // 2. Calculations
-    let totalRevenue = 0;
-    let cashCollected = 0;
-    let pending = 0;
-    
-    invoices.forEach(inv => {
-      totalRevenue += inv.amount;
-      if (inv.status === 'paid') {
-        cashCollected += inv.amount;
-      } else {
-        pending += inv.amount;
-      }
-    });
+      setProjects(dbProjects);
+      setTeamMembers(dbTeam);
+      setInvoices(dbInvoices);
 
-    let totalCosts = 0;
-    expenses.forEach(exp => {
-      totalCosts += exp.amount;
-    });
+      // Calculations
+      let totalRevenue = 0;
+      let cashCollected = 0;
+      let pending = 0;
 
-    const netCashFlow = cashCollected - totalCosts;
+      dbInvoices.forEach(inv => {
+        totalRevenue += inv.amount;
+        if (inv.status === 'paid') {
+          cashCollected += inv.amount;
+        } else {
+          pending += inv.amount;
+        }
+      });
 
-    setStats({
-      totalRevenue,
-      cashCollected,
-      pending,
-      totalCosts,
-      netCashFlow
-    });
+      let totalCosts = 0;
+      dbExpenses.forEach(exp => {
+        totalCosts += exp.amount;
+      });
 
-    // 3. Pipeline grouping
-    const pipeCounts = { pipeline: 0, active: 0, review: 0, completed: 0 };
-    projects.forEach(p => {
-      if (pipeCounts[p.status] !== undefined) {
-        pipeCounts[p.status]++;
-      }
-    });
-    setPipeline(pipeCounts);
+      const netCashFlow = cashCollected - totalCosts;
 
-    // 4. Project Earnings breakdown (Revenue by project)
-    const projectRevenueMap = {};
-    projects.forEach(p => {
-      projectRevenueMap[p.id] = { name: p.name, client: p.client, earned: 0 };
-    });
+      setStats({
+        totalRevenue,
+        cashCollected,
+        pending,
+        totalCosts,
+        netCashFlow
+      });
 
-    invoices.forEach(inv => {
-      if (projectRevenueMap[inv.projectAssociation]) {
-        projectRevenueMap[inv.projectAssociation].earned += inv.amount;
-      }
-    });
+      // Generate upcoming milestones from project target dates and invoice due dates
+      const upcoming = [];
+      
+      // Project due dates
+      dbProjects.forEach(p => {
+        if (p.status !== 'completed' && p.dueDate) {
+          upcoming.push({
+            type: 'project',
+            projectName: p.name,
+            text: `Delivery Target`,
+            date: p.dueDate,
+            priority: p.status === 'active' ? 'high' : 'medium'
+          });
+        }
+      });
 
-    const earningsArray = Object.values(projectRevenueMap).sort((a, b) => b.earned - a.earned);
-    setProjectEarnings(earningsArray);
+      // Invoice due dates
+      dbInvoices.forEach(inv => {
+        if (inv.status === 'pending' && inv.dueDate) {
+          upcoming.push({
+            type: 'invoice',
+            projectName: inv.client,
+            text: `Payment Pending`,
+            date: inv.dueDate,
+            priority: 'high'
+          });
+        }
+      });
 
-    // 5. Upcoming milestones and due invoices
-    const upcoming = [];
-    invoices.forEach(inv => {
-      if (inv.status === 'pending') {
-        upcoming.push({
-          type: 'invoice',
-          title: `Billing Due: ${inv.client}`,
-          date: inv.dueDate,
-          value: `$${inv.amount.toLocaleString()}`,
-          color: 'text-amber-400 bg-amber-500/10'
-        });
-      }
-    });
+      // Sort by date ascending
+      upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
+      setUpcomingMilestones(upcoming.slice(0, 6)); // top 6
 
-    // Sort upcoming items by date
-    upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
-    setUpcomingItems(upcoming.slice(0, 4));
-
+    } catch (e) {
+      console.error(e);
+    }
   }, [refreshTrigger, activeTab]);
 
+  // Determine priority color for quick wins card
+  const getProjectPriorityClass = (proj) => {
+    if (proj.status === 'review') return 'high';
+    if (proj.status === 'active') return 'medium';
+    return 'low';
+  };
+
+  // Convert status to readable text and match style
+  const getProjectStatusLabel = (status) => {
+    switch (status) {
+      case 'active': return 'In Progress';
+      case 'review': return 'In Review';
+      case 'completed': return 'Completed';
+      case 'pipeline': return 'Pipeline';
+      default: return 'Active';
+    }
+  };
+
+  // Filter projects for Quick Wins
+  const getQuickWinsProjects = () => {
+    if (activeQuickWinsFilter === 'active') {
+      return projects.filter(p => p.status === 'active' || p.status === 'review');
+    }
+    return projects;
+  };
+
+  // Calculate percentage of tasks completed
+  const getTasksCompletionPercentage = (tasks) => {
+    if (!tasks || tasks.length === 0) return 100;
+    const completed = tasks.filter(t => t.completed).length;
+    return Math.round((completed / tasks.length) * 100);
+  };
+
+  // Render Kanban Columns
+  const renderKanbanBoard = () => {
+    const columns = [
+      { title: "Requirements", key: "requirements" },
+      { title: "Solutioning", key: "solutioning" },
+      { title: "Build", key: "build" },
+      { title: "Testing", key: "testing" },
+      { title: "Production", key: "production" },
+      { title: "Stabilization", key: "stabilization" },
+      { title: "Closed", key: "closed" }
+    ];
+
+    // Group projects by phase. If no phase is specified, fall back based on status
+    const getProjectPhase = (p) => {
+      if (p.phase) return p.phase;
+      // fallback mapping
+      if (p.status === 'pipeline') return 'requirements';
+      if (p.status === 'active') return 'build';
+      if (p.status === 'review') return 'testing';
+      if (p.status === 'completed') return 'production';
+      return 'requirements';
+    };
+
+    return (
+      <div className="kanban-board">
+        {columns.map(col => {
+          const colProjects = projects.filter(p => getProjectPhase(p) === col.key);
+          return (
+            <div className="kanban-col" key={col.key}>
+              <div className="kanban-col-header">
+                <span className="kanban-col-title">{col.title}</span>
+                <span className="kanban-col-count">{colProjects.length}</span>
+              </div>
+              {colProjects.map(p => {
+                // Find team members assigned to this project
+                const assignedTeam = teamMembers.filter(m => 
+                  m.assignedProjects && m.assignedProjects.includes(p.id)
+                );
+
+                return (
+                  <div key={p.id} className="kanban-card cursor-pointer" onClick={() => {
+                    setSelectedProject(p);
+                    setActiveTab('projects');
+                  }}>
+                    <div className="kanban-card-title">{p.name}</div>
+                    <div className="kanban-card-desc">{p.category || 'General Dev'}</div>
+                    
+                    <div className="kanban-card-footer">
+                      <div className="kanban-avatars">
+                        {assignedTeam.slice(0, 3).map((t, index) => (
+                          <div 
+                            key={t.id} 
+                            className="kanban-avatar" 
+                            style={{ 
+                              background: index === 0 ? 'var(--accent-gold)' : index === 1 ? 'var(--accent-teal)' : 'var(--border-medium)',
+                              zIndex: 10 - index 
+                            }}
+                            title={t.name}
+                          >
+                            {t.name.charAt(0)}
+                          </div>
+                        ))}
+                        {assignedTeam.length === 0 && (
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Unassigned</span>
+                        )}
+                      </div>
+                      <div className="kanban-date">{p.dueDate}</div>
+                    </div>
+                    
+                    <div className="kanban-progress-mini">
+                      <div 
+                        className="kanban-progress-mini-fill" 
+                        style={{ width: `${p.progress !== undefined ? p.progress : getTasksCompletionPercentage(p.tasks)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const isDbEmpty = stats.totalRevenue === 0 && stats.totalCosts === 0 && projects.length === 0;
+
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Executive Dashboard</h2>
-          <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
-            Real-time financial positions, development pipeline stages, and cash logs.
-          </p>
-        </div>
-        <div className="text-[10px] text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-          <span>Updates Live from Local Storage</span>
-        </div>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Metric 1 */}
-        <div className="glass-card p-4 rounded-xl relative overflow-hidden flex flex-col justify-between h-28 border border-slate-800/80">
-          <div className="flex items-start justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Total Revenue</span>
-            <div className="p-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
-              <DollarSign size={14} />
-            </div>
+    <div className="space-y-6">
+      {/* 5-Column KPI Grid */}
+      <div className="kpi-grid">
+        <div className="kpi-card animate-in delay-1">
+          <div className="kpi-label">
+            <span className="kpi-dot" style={{ background: 'var(--accent-gold)' }} />
+            Total Revenue
           </div>
-          <div className="mt-2">
-            <h3 className="text-lg font-black text-slate-100 leading-none">${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-            <p className="text-[9px] text-slate-500 mt-1 leading-none">Calculated project billings</p>
+          <div className="kpi-value">{formatAmount(stats.totalRevenue)}</div>
+          <div className="kpi-sub">
+            <span className="trend-up">↑ {invoices.length} billings logged</span>
           </div>
         </div>
 
-        {/* Metric 2 */}
-        <div className="glass-card p-4 rounded-xl relative overflow-hidden flex flex-col justify-between h-28 border border-slate-800/80">
-          <div className="flex items-start justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Cash Collected</span>
-            <div className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <Wallet size={14} />
-            </div>
+        <div className="kpi-card animate-in delay-2">
+          <div className="kpi-label">
+            <span className="kpi-dot" style={{ background: 'var(--accent-teal)' }} />
+            Cash Collected
           </div>
-          <div className="mt-2">
-            <h3 className="text-lg font-black text-emerald-400 leading-none">${stats.cashCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-            <p className="text-[9px] text-slate-500 mt-1 leading-none">Settled client accounts</p>
-          </div>
-        </div>
-
-        {/* Metric 3 */}
-        <div className="glass-card p-4 rounded-xl relative overflow-hidden flex flex-col justify-between h-28 border border-slate-800/80">
-          <div className="flex items-start justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Pending Invoices</span>
-            <div className="p-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
-              <Activity size={14} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-lg font-black text-amber-400 leading-none">${stats.pending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-            <p className="text-[9px] text-slate-500 mt-1 leading-none">Awaiting billing settlement</p>
+          <div className="kpi-value" style={{ color: 'var(--accent-teal)' }}>{formatAmount(stats.cashCollected)}</div>
+          <div className="kpi-sub">
+            {stats.totalRevenue > 0 ? (
+              <span>{Math.round((stats.cashCollected / stats.totalRevenue) * 100)}% collection rate</span>
+            ) : (
+              <span>0% collection rate</span>
+            )}
           </div>
         </div>
 
-        {/* Metric 4 */}
-        <div className="glass-card p-4 rounded-xl relative overflow-hidden flex flex-col justify-between h-28 border border-slate-800/80">
-          <div className="flex items-start justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Total Costs</span>
-            <div className="p-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
-              <ArrowDownRight size={14} />
-            </div>
+        <div className="kpi-card animate-in delay-3">
+          <div className="kpi-label">
+            <span className="kpi-dot" style={{ background: 'var(--status-pending)' }} />
+            Pending Inflow
           </div>
-          <div className="mt-2">
-            <h3 className="text-lg font-black text-rose-400 leading-none">${stats.totalCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-            <p className="text-[9px] text-slate-500 mt-1 leading-none">Operating expenses logged</p>
+          <div className="kpi-value" style={{ color: 'var(--status-pending)' }}>{formatAmount(stats.pending)}</div>
+          <div className="kpi-sub">
+            <span>{invoices.filter(i => i.status === 'pending').length} invoices outstanding</span>
           </div>
         </div>
 
-        {/* Metric 5 */}
-        <div className="glass-card p-4 rounded-xl relative overflow-hidden flex flex-col justify-between h-28 border border-slate-800/80">
-          <div className="flex items-start justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Net Cash Flow</span>
-            <div className={`p-1 rounded-lg border ${stats.netCashFlow >= 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-              {stats.netCashFlow >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-            </div>
+        <div className="kpi-card animate-in delay-4">
+          <div className="kpi-label">
+            <span className="kpi-dot" style={{ background: 'var(--priority-high)' }} />
+            Total Costs
           </div>
-          <div className="mt-2">
-            <h3 className={`text-lg font-black leading-none ${stats.netCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              ${stats.netCashFlow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-            <p className="text-[9px] text-slate-500 mt-1 leading-none">Cash collected less expenses</p>
+          <div className="kpi-value" style={{ color: 'var(--priority-high)' }}>{formatAmount(stats.totalCosts)}</div>
+          <div className="kpi-sub">
+            <span>Logged expenditures</span>
+          </div>
+        </div>
+
+        <div className="kpi-card animate-in delay-5">
+          <div className="kpi-label">
+            <span className="kpi-dot" style={{ background: 'var(--status-completed)' }} />
+            Net Cash Flow
+          </div>
+          <div className="kpi-value" style={{ color: stats.netCashFlow >= 0 ? 'var(--status-completed)' : 'var(--priority-high)' }}>
+            {formatAmount(stats.netCashFlow)}
+          </div>
+          <div className="kpi-sub">
+            {stats.netCashFlow >= 0 ? (
+              <span className="trend-up">▲ Healthy Margin</span>
+            ) : (
+              <span className="trend-down">▼ Net Deficit</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cashflow Trends (SVG Line Chart) */}
-        <div className="lg:col-span-2 glass-panel p-5 rounded-xl border border-slate-900 flex flex-col justify-between h-80">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Financial Trends</span>
-            <h4 className="text-sm font-bold text-slate-200">Dynamic Inflow & Expenses Tracking</h4>
-          </div>
-
-          <div className="relative flex-1 min-h-[160px] mt-4 flex items-end">
-            {/* Draw a dynamic SVG graph */}
-            <svg className="w-full h-full" viewBox="0 0 500 150" preserveAspectRatio="none">
-              {/* Grid Lines */}
-              <line x1="0" y1="30" x2="500" y2="30" stroke="#1d1b30" strokeWidth="1" strokeDasharray="3,3" />
-              <line x1="0" y1="75" x2="500" y2="75" stroke="#1d1b30" strokeWidth="1" strokeDasharray="3,3" />
-              <line x1="0" y1="120" x2="500" y2="120" stroke="#1d1b30" strokeWidth="1" strokeDasharray="3,3" />
-              
-              {/* Cash collected Line */}
-              <path
-                d="M 50,110 L 150,95 L 250,75 L 350,55 L 450,30"
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="3.5"
-                className="chart-draw"
-              />
-              {/* Expense Line */}
-              <path
-                d="M 50,135 L 150,130 L 250,110 L 350,125 L 450,105"
-                fill="none"
-                stroke="#f43f5e"
-                strokeWidth="2.5"
-                className="chart-draw"
-                strokeDasharray="4,2"
-              />
-
-              {/* Data points */}
-              <circle cx="50" cy="110" r="4" fill="#10b981" />
-              <circle cx="150" cy="95" r="4" fill="#10b981" />
-              <circle cx="250" cy="75" r="4" fill="#10b981" />
-              <circle cx="350" cy="55" r="4" fill="#10b981" />
-              <circle cx="450" cy="30" r="4" fill="#10b981" />
-
-              <circle cx="50" cy="135" r="3" fill="#f43f5e" />
-              <circle cx="150" cy="130" r="3" fill="#f43f5e" />
-              <circle cx="250" cy="110" r="3" fill="#f43f5e" />
-              <circle cx="350" cy="125" r="3" fill="#f43f5e" />
-              <circle cx="450" cy="105" r="3" fill="#f43f5e" />
+      {isDbEmpty ? (
+        /* Empty onboarding dashboard structure */
+        <div className="glass-panel p-8 rounded-2xl border border-slate-900 max-w-4xl mx-auto flex flex-col items-center justify-center text-center space-y-6 animate-in delay-6">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/10">
+            <svg className="w-8 h-8 text-white animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            
-            <div className="absolute top-2 right-2 flex items-center gap-3 text-[9px] font-bold">
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-emerald-500 block" />
-                <span className="text-emerald-400">Cash Flow (In)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-rose-500 border-dashed border-t block" />
-                <span className="text-rose-400">Costs (Out)</span>
-              </div>
-            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-base font-extrabold text-slate-100">CDG Dashboard Empty</h3>
+            <p className="text-xs text-slate-400 max-w-lg mt-2 leading-relaxed">
+              Your console is connected and ready. Initialize your workspace by configuring projects, team members, invoices, and expenses.
+            </p>
           </div>
 
-          <div className="flex justify-between text-[9px] text-slate-500 font-bold px-8 mt-2 border-t border-slate-900 pt-2">
-            <span>Jan 2026</span>
-            <span>Feb 2026</span>
-            <span>Mar 2026</span>
-            <span>Apr 2026</span>
-            <span>May 2026</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl text-left">
+            <button 
+              onClick={() => setActiveTab('projects')}
+              className="p-4 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-violet-500/30 rounded-xl transition-all group cursor-pointer"
+            >
+              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest block mb-1 group-hover:underline">Step 1</span>
+              <span className="text-xs font-bold text-slate-200 block">Launch a Project Workspace</span>
+              <p className="text-[10px] text-slate-500 leading-relaxed mt-1">Register client specifications, sprint due dates, and initial milestones checklist.</p>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('team')}
+              className="p-4 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-violet-500/30 rounded-xl transition-all group cursor-pointer"
+            >
+              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest block mb-1 group-hover:underline">Step 2</span>
+              <span className="text-xs font-bold text-slate-200 block">Register Development Team</span>
+              <p className="text-[10px] text-slate-500 leading-relaxed mt-1">Add CDG developers, coordinate Titles/Emails, and map project workload rosters.</p>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('finances')}
+              className="p-4 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-violet-500/30 rounded-xl transition-all group cursor-pointer"
+            >
+              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest block mb-1 group-hover:underline">Step 3</span>
+              <span className="text-xs font-bold text-slate-200 block">Issue Inbound Invoices</span>
+              <p className="text-[10px] text-slate-500 leading-relaxed mt-1">Log billings issued, adjust payment status, and track revenue collection targets.</p>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('expenses')}
+              className="p-4 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-violet-500/30 rounded-xl transition-all group cursor-pointer"
+            >
+              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest block mb-1 group-hover:underline">Step 4</span>
+              <span className="text-xs font-bold text-slate-200 block">Log Operating Expenditures</span>
+              <p className="text-[10px] text-slate-500 leading-relaxed mt-1">Record hosting clusters, API seat licensing, and sub-contractor costs.</p>
+            </button>
           </div>
         </div>
-
-        {/* Project Pipeline Card */}
-        <div className="glass-panel p-5 rounded-xl border border-slate-900 flex flex-col justify-between h-80">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Workspace Pipeline</span>
-            <h4 className="text-sm font-bold text-slate-200">Development Cycle Stages</h4>
-          </div>
-
-          <div className="space-y-3.5 my-auto">
-            {/* Active */}
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-400 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 block" />
-                  Active Development
-                </span>
-                <span className="text-slate-200">{pipeline.active} projects</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 rounded-full transition-all duration-500" 
-                  style={{ width: `${pipeline.active ? (pipeline.active / (Object.values(pipeline).reduce((a,b) => a+b, 0) || 1)) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-
-            {/* In Review */}
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-400 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 block" />
-                  Code & QA Review
-                </span>
-                <span className="text-slate-200">{pipeline.review} projects</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-amber-500 rounded-full transition-all duration-500" 
-                  style={{ width: `${pipeline.review ? (pipeline.review / (Object.values(pipeline).reduce((a,b) => a+b, 0) || 1)) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Completed */}
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-400 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 block" />
-                  Shipped / Completed
-                </span>
-                <span className="text-slate-200">{pipeline.completed} projects</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
-                  style={{ width: `${pipeline.completed ? (pipeline.completed / (Object.values(pipeline).reduce((a,b) => a+b, 0) || 1)) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Proposal / Pipeline */}
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-400 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-slate-600 block" />
-                  Pre-flight / Pipeline
-                </span>
-                <span className="text-slate-200">{pipeline.pipeline} projects</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-slate-600 rounded-full transition-all duration-500" 
-                  style={{ width: `${pipeline.pipeline ? (pipeline.pipeline / (Object.values(pipeline).reduce((a,b) => a+b, 0) || 1)) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => setActiveTab('projects')}
-            className="w-full py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-850/50 transition-all text-center"
-          >
-            Manage Workspaces
-          </button>
-        </div>
-      </div>
-
-      {/* Project Revenue Breakdown & Upcoming Payments Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Project Revenue Table */}
-        <div className="glass-panel p-5 rounded-xl border border-slate-900 flex flex-col justify-between min-h-[300px]">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Client Allocation</span>
-            <h4 className="text-sm font-bold text-slate-200">Revenue Yield by Project</h4>
-          </div>
-
-          <div className="flex-1 mt-4 space-y-3">
-            {projectEarnings.length > 0 ? (
-              projectEarnings.map((p, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-900 pb-2">
-                  <div>
-                    <span className="font-bold text-slate-200 block leading-tight">{p.name}</span>
-                    <span className="text-[10px] text-slate-500 leading-none">{p.client}</span>
-                  </div>
-                  <span className="font-extrabold text-slate-200">${p.earned.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+      ) : (
+        /* Dynamic dashboard contents */
+        <>
+          {/* Row 1: Quick Wins + Vertical Revenue Stacked Bar Chart */}
+          <div className="section-row two-col">
+            {/* Quick Wins (Active Workspaces) */}
+            <div className="card animate-in delay-6">
+              <div className="card-header">
+                <div className="card-title">Opportunities & Quick Wins</div>
+                <div className="card-actions">
+                  <button 
+                    onClick={() => setActiveQuickWinsFilter('active')}
+                    className={`card-action-btn ${activeQuickWinsFilter === 'active' ? 'active' : ''}`}
+                  >
+                    Active
+                  </button>
+                  <button 
+                    onClick={() => setActiveQuickWinsFilter('all')}
+                    className={`card-action-btn ${activeQuickWinsFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All
+                  </button>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-10 text-xs text-slate-500">No project allocations configured.</div>
-            )}
-          </div>
-
-          <button 
-            onClick={() => setActiveTab('finances')}
-            className="w-full py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-850/50 transition-all text-center mt-4"
-          >
-            Open Ledger Console
-          </button>
-        </div>
-
-        {/* Upcoming Items List */}
-        <div className="glass-panel p-5 rounded-xl border border-slate-900 flex flex-col justify-between min-h-[300px]">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Upcoming Deadlines</span>
-            <h4 className="text-sm font-bold text-slate-200">Inbound Billings & Milestones</h4>
-          </div>
-
-          <div className="flex-1 mt-4 space-y-3">
-            {upcomingItems.length > 0 ? (
-              upcomingItems.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-slate-950/40 border border-slate-900">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-lg text-xs font-bold ${item.color}`}>
-                      <Calendar size={13} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-200 block">{item.title}</span>
-                      <span className="text-[10px] text-slate-500 font-semibold">Due: {item.date}</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-extrabold text-slate-300">{item.value}</span>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-                <AlertCircle size={28} className="mb-2 text-slate-600" />
-                <span className="text-xs">No pending invoices due at this time.</span>
               </div>
-            )}
+              <div className="card-body">
+                <div className="qw-list">
+                  {getQuickWinsProjects().slice(0, 4).map((p, idx) => {
+                    const completedTasks = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
+                    const totalTasks = p.tasks ? p.tasks.length : 0;
+                    const compPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
+                    const pClass = getProjectPriorityClass(p);
+                    
+                    return (
+                      <div 
+                        key={p.id} 
+                        className={`qw-card ${pClass}`}
+                        onClick={() => {
+                          setSelectedProject(p);
+                          setActiveTab('projects');
+                        }}
+                      >
+                        <div className="qw-top">
+                          <div className="qw-name">{p.name}</div>
+                          <span className={`status-badge ${p.status}`}>
+                            {getProjectStatusLabel(p.status)}
+                          </span>
+                        </div>
+                        <div className="qw-progress">
+                          <div className="progress-bar-bg">
+                            <div className="progress-bar-fill" style={{ width: `${compPct}%` }} />
+                          </div>
+                        </div>
+                        <div className="qw-meta">
+                          <span>{completedTasks}/{totalTasks} tasks</span>
+                          <span>{p.category || 'General Dev'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {getQuickWinsProjects().length === 0 && (
+                    <div className="text-center py-12 text-xs text-slate-500">
+                      No active workspaces listed.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Stacked Vertical Bar Chart: Revenue by Project */}
+            <div className="card animate-in delay-6">
+              <div className="card-header">
+                <div className="card-title">Revenue by Project</div>
+                <div className="card-actions">
+                  <button className="card-action-btn active">Bar Chart</button>
+                </div>
+              </div>
+              <div className="card-body">
+                <div className="revenue-bars">
+                  {projects.slice(0, 6).map(p => {
+                    // Calculate paid and pending for this project
+                    const projectInvoices = invoices.filter(inv => inv.projectAssociation === p.id);
+                    let paidVal = 0;
+                    let pendingVal = 0;
+                    projectInvoices.forEach(inv => {
+                      if (inv.status === 'paid') paidVal += inv.amount;
+                      else pendingVal += inv.amount;
+                    });
+
+                    const totalValue = paidVal + pendingVal;
+                    // Find max value in projects to scale heights
+                    const maxVal = Math.max(...projects.map(pr => {
+                      const pins = invoices.filter(inv => inv.projectAssociation === pr.id);
+                      return pins.reduce((sum, inv) => sum + inv.amount, 0);
+                    }), 1000);
+
+                    const paidHeight = (paidVal / maxVal) * 160;
+                    const pendingHeight = (pendingVal / maxVal) * 160;
+
+                    return (
+                      <div className="rev-bar-group" key={p.id} title={`${p.name}: Total ${formatAmount(totalValue)}`}>
+                        <div className="rev-bar-value">{formatAmount(totalValue)}</div>
+                        <div className="rev-bar-stack">
+                          {pendingHeight > 0 && (
+                            <div className="rev-bar pending" style={{ height: `${pendingHeight}px` }} />
+                          )}
+                          {paidHeight > 0 && (
+                            <div className="rev-bar paid" style={{ height: `${paidHeight}px` }} />
+                          )}
+                        </div>
+                        <div className="rev-bar-label">{p.name.split(' ')[0]}</div>
+                      </div>
+                    );
+                  })}
+                  {projects.length === 0 && (
+                    <div className="text-center py-20 text-xs text-slate-500 w-full">
+                      No project revenues tracked.
+                    </div>
+                  )}
+                </div>
+                <div className="chart-legend">
+                  <div className="legend-item">
+                    <div className="legend-dot" style={{ background: 'var(--accent-teal)' }} />
+                    Paid Billings
+                  </div>
+                  <div className="legend-item">
+                    <div className="legend-dot" style={{ background: 'var(--accent-gold)', opacity: 0.5 }} />
+                    Pending Billings
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <button 
-            onClick={() => setActiveTab('calendar')}
-            className="w-full py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-850/50 transition-all text-center mt-4"
-          >
-            View Calendar Schedule
-          </button>
-        </div>
-      </div>
+          {/* Row 2: Project Pipeline (Kanban Board) */}
+          <div className="section-row kanban-row">
+            <div className="card animate-in delay-7">
+              <div className="card-header">
+                <div className="card-title">Project Pipeline</div>
+                <div className="card-actions">
+                  <button className="card-action-btn active">Board View</button>
+                </div>
+              </div>
+              <div className="card-body">
+                {renderKanbanBoard()}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Payment Status table + Upcoming Deadlines list */}
+          <div className="section-row two-col">
+            {/* Payment Status table */}
+            <div className="card animate-in delay-8">
+              <div className="card-header">
+                <div className="card-title">Payment Status</div>
+              </div>
+              <div className="card-body">
+                <div className="overflow-x-auto">
+                  <table className="pay-table">
+                    <thead>
+                      <tr>
+                        <th>Project</th>
+                        <th>Total Billing</th>
+                        <th>Paid</th>
+                        <th>Pending</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projects.slice(0, 6).map(p => {
+                        const pins = invoices.filter(inv => inv.projectAssociation === p.id);
+                        let paidVal = 0;
+                        let pendingVal = 0;
+                        pins.forEach(inv => {
+                          if (inv.status === 'paid') paidVal += inv.amount;
+                          else pendingVal += inv.amount;
+                        });
+
+                        const totalValue = paidVal + pendingVal;
+                        const isPaid = pendingVal === 0 && totalValue > 0;
+
+                        return (
+                          <tr key={p.id}>
+                            <td className="pay-project">{p.name}</td>
+                            <td className="pay-amount">{formatAmount(totalValue)}</td>
+                            <td className="pay-amount" style={{ color: 'var(--accent-teal)' }}>{formatAmount(paidVal)}</td>
+                            <td className="pay-amount" style={{ color: pendingVal > 0 ? 'var(--status-pending)' : 'var(--text-muted)' }}>{formatAmount(pendingVal)}</td>
+                            <td>
+                              <span className={`pay-status ${isPaid ? 'paid' : totalValue === 0 ? 'pending' : 'pending'}`}>
+                                <span className="pay-status-dot" />
+                                {isPaid ? 'Paid' : 'Pending'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {projects.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-6 text-xs text-slate-500">
+                            No ledger entries found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming Deadlines list */}
+            <div className="card animate-in delay-8">
+              <div className="card-header">
+                <div className="card-title">Upcoming Milestones</div>
+              </div>
+              <div className="card-body">
+                <div className="upcoming-list">
+                  {upcomingMilestones.map((item, idx) => (
+                    <div className="upcoming-item" key={idx}>
+                      <div className="upcoming-time">
+                        {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div 
+                        className="upcoming-dot" 
+                        style={{ 
+                          background: item.priority === 'high' ? 'var(--priority-high)' : 'var(--accent-gold)' 
+                        }} 
+                      />
+                      <div className="upcoming-text">
+                        <strong>{item.projectName}</strong> — {item.text}
+                      </div>
+                    </div>
+                  ))}
+                  {upcomingMilestones.length === 0 && (
+                    <div className="text-center py-12 text-xs text-slate-500">
+                      All milestones complete. No upcoming deadlines.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -7,16 +7,28 @@ import FinancesView from './components/FinancesView';
 import ExpensesView from './components/ExpensesView';
 import CatalogueView from './components/CatalogueView';
 import CalendarView from './components/CalendarView';
+import TeamView from './components/TeamView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState(null);
+  const [currency, setCurrency] = useState('USD'); // Global currency toggled between USD and PHP
   
   // A refresh trigger counter to force child components to pull latest LocalStorage state
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Convert and format monetary figures based on selected currency
+  const formatAmount = (usdValue) => {
+    const exchangeRate = 58; // 1 USD = 58 PHP
+    if (currency === 'PHP') {
+      const phpVal = usdValue * exchangeRate;
+      return `₱${phpVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const renderActiveView = () => {
@@ -28,6 +40,8 @@ function App() {
             setActiveTab={setActiveTab}
             setSelectedProject={setSelectedProject}
             refreshTrigger={refreshTrigger}
+            formatAmount={formatAmount}
+            currency={currency}
           />
         );
       case 'projects':
@@ -45,6 +59,7 @@ function App() {
             activeTab={activeTab}
             refreshTrigger={refreshTrigger}
             triggerRefresh={triggerRefresh}
+            formatAmount={formatAmount}
           />
         );
       case 'expenses':
@@ -53,6 +68,7 @@ function App() {
             activeTab={activeTab}
             refreshTrigger={refreshTrigger}
             triggerRefresh={triggerRefresh}
+            formatAmount={formatAmount}
           />
         );
       case 'catalogue':
@@ -66,6 +82,15 @@ function App() {
       case 'calendar':
         return (
           <CalendarView
+            activeTab={activeTab}
+            refreshTrigger={refreshTrigger}
+            triggerRefresh={triggerRefresh}
+            formatAmount={formatAmount}
+          />
+        );
+      case 'team':
+        return (
+          <TeamView
             activeTab={activeTab}
             refreshTrigger={refreshTrigger}
             triggerRefresh={triggerRefresh}
@@ -85,6 +110,7 @@ function App() {
       {/* Sidebar - Persistent left navigation */}
       <Sidebar 
         activeTab={activeTab} 
+        refreshTrigger={refreshTrigger}
         setActiveTab={(tab) => {
           setActiveTab(tab);
           // Reset selected project details when changing tabs
@@ -100,6 +126,8 @@ function App() {
           setActiveTab={setActiveTab}
           setSelectedProject={setSelectedProject}
           refreshTrigger={refreshTrigger}
+          currency={currency}
+          setCurrency={setCurrency}
         />
 
         {/* Viewport - Renders active view with proper padding */}
