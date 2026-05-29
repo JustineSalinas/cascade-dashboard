@@ -10,9 +10,14 @@ import {
   ArrowUpRight, 
   FileText, 
   Users, 
+  UserPlus,
   CheckCircle,
   X,
-  AlertCircle
+  AlertCircle,
+  Crown,
+  Shield,
+  Code2,
+  Palette
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
@@ -34,6 +39,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
   const [formDueDate, setFormDueDate] = useState('');
   const [formTasks, setFormTasks] = useState(['']); // initial one empty task
   const [formPhase, setFormPhase] = useState('requirements'); // project phase
+  const [formMembers, setFormMembers] = useState([{ name: '', role: 'developer' }]);
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -56,6 +62,53 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
     setFormTasks(list);
   };
 
+  const handleAddMember = () => {
+    setFormMembers([...formMembers, { name: '', role: 'developer' }]);
+  };
+
+  const handleRemoveMember = (index) => {
+    const list = [...formMembers];
+    list.splice(index, 1);
+    setFormMembers(list);
+  };
+
+  const handleMemberChange = (index, field, value) => {
+    const list = [...formMembers];
+    list[index] = { ...list[index], [field]: value };
+    setFormMembers(list);
+  };
+
+  // Generate consistent avatar color from name string
+  const getAvatarColor = (name) => {
+    const colors = [
+      'bg-violet-500', 'bg-indigo-500', 'bg-emerald-500', 'bg-rose-500',
+      'bg-amber-500', 'bg-sky-500', 'bg-pink-500', 'bg-teal-500'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const getInitials = (name) => {
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const roleIcons = {
+    lead: Crown,
+    manager: Shield,
+    developer: Code2,
+    designer: Palette,
+    qa: CheckCircle,
+  };
+
+  const roleLabels = {
+    lead: 'Tech Lead',
+    manager: 'Manager',
+    developer: 'Developer',
+    designer: 'Designer',
+    qa: 'QA Engineer',
+  };
+
   const handleSaveProject = (e) => {
     e.preventDefault();
     if (!formName || !formClient || !formManager) {
@@ -75,6 +128,9 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
     // Calculate initial progress
     const progress = formattedTasks.length > 0 ? 0 : 100;
 
+    // Process members
+    const formattedMembers = formMembers.filter(m => m.name.trim() !== '');
+
     const projectData = {
       name: formName,
       client: formClient,
@@ -85,6 +141,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
       dueDate: formDueDate || new Date().toISOString().split('T')[0],
       docsCount: editingId ? (projects.find(p => p.id === editingId)?.docsCount || 4) : 4,
       tasks: editingId ? (projects.find(p => p.id === editingId)?.tasks || formattedTasks) : formattedTasks,
+      members: editingId ? (projects.find(p => p.id === editingId)?.members || formattedMembers) : formattedMembers,
     };
 
     if (editingId) {
@@ -93,6 +150,8 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
       const currentTasks = projects.find(p => p.id === editingId)?.tasks || [];
       const completed = currentTasks.filter(t => t.completed).length;
       projectData.progress = currentTasks.length > 0 ? Math.round((completed / currentTasks.length) * 100) : 100;
+      // Keep existing members unless explicitly changed from edit mode
+      projectData.members = formattedMembers.length > 0 ? formattedMembers : (projects.find(p => p.id === editingId)?.members || []);
     } else {
       projectData.progress = progress;
     }
@@ -109,6 +168,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
     setFormPhase('requirements');
     setFormDueDate('');
     setFormTasks(['']);
+    setFormMembers([{ name: '', role: 'developer' }]);
     setEditingId(null);
     setShowAddModal(false);
   };
@@ -123,6 +183,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
     setFormPhase(project.phase || 'requirements');
     setFormDueDate(project.dueDate);
     setFormTasks(project.tasks.map(t => t.text));
+    setFormMembers(project.members && project.members.length > 0 ? project.members : [{ name: '', role: 'developer' }]);
     setShowAddModal(true);
   };
 
@@ -222,6 +283,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
             setFormStatus('pipeline');
             setFormDueDate('');
             setFormTasks(['']);
+            setFormMembers([{ name: '', role: 'developer' }]);
             setShowAddModal(true);
           }}
           className="flex items-center gap-2 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-xs font-bold rounded-lg text-white shadow-md shadow-violet-500/20 transition-all cursor-pointer"
@@ -333,6 +395,29 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                         <span className="text-slate-300 font-semibold block truncate mt-0.5">{p.client}</span>
                       </div>
                     </div>
+
+                    {/* Member Avatars */}
+                    {p.members && p.members.length > 0 && (
+                      <div className="mb-3">
+                        <span className="text-slate-500 block uppercase tracking-wider text-[8px] font-bold mb-1.5">Team Members</span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {p.members.slice(0, 5).map((member, mIdx) => (
+                            <div
+                              key={mIdx}
+                              title={`${member.name} — ${roleLabels[member.role] || member.role}`}
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0 ring-2 ring-slate-950 ${getAvatarColor(member.name || 'X')}`}
+                            >
+                              {getInitials(member.name || '?')}
+                            </div>
+                          ))}
+                          {p.members.length > 5 && (
+                            <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[8px] font-bold text-slate-400 ring-2 ring-slate-950">
+                              +{p.members.length - 5}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions Bar */}
@@ -423,8 +508,8 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                 </div>
               </div>
 
-              <div className="border-t border-slate-900 pt-4 mt-6">
-                <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+              <div className="border-t border-slate-900 pt-4 mt-6 space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-400">
                   <span>Workspace Lead:</span>
                   <span className="font-semibold text-slate-200">{selectedProjDetails.manager}</span>
                 </div>
@@ -432,6 +517,33 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                   <span>Client Owner:</span>
                   <span className="font-semibold text-slate-200">{selectedProjDetails.client}</span>
                 </div>
+
+                {/* Members Roster */}
+                {selectedProjDetails.members && selectedProjDetails.members.length > 0 && (
+                  <div className="pt-3 border-t border-slate-900">
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <Users size={11} className="text-violet-400" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Roster</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {selectedProjDetails.members.map((member, mIdx) => {
+                        const RoleIcon = roleIcons[member.role] || Code2;
+                        return (
+                          <div key={mIdx} className="flex items-center gap-2.5 p-1.5 rounded-lg bg-slate-900/40 border border-slate-900/60">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black text-white shrink-0 ${getAvatarColor(member.name || 'X')}`}>
+                              {getInitials(member.name || '?')}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-slate-200 block truncate">{member.name}</span>
+                              <span className="text-[9px] text-slate-500">{roleLabels[member.role] || member.role}</span>
+                            </div>
+                            <RoleIcon size={11} className="text-slate-600 shrink-0" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -588,6 +700,54 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                   </button>
                 </div>
               )}
+
+              {/* Members Builder */}
+              <div className="border-t border-slate-900 pt-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <UserPlus size={12} className="text-violet-400" />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Add Team Members</label>
+                </div>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {formMembers.map((member, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={member.name}
+                        onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
+                        placeholder={`Member name`}
+                        className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
+                      />
+                      <select
+                        value={member.role}
+                        onChange={(e) => handleMemberChange(idx, 'role', e.target.value)}
+                        className="px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-violet-500"
+                      >
+                        <option value="lead">Tech Lead</option>
+                        <option value="manager">Manager</option>
+                        <option value="developer">Developer</option>
+                        <option value="designer">Designer</option>
+                        <option value="qa">QA Engineer</option>
+                      </select>
+                      {formMembers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(idx)}
+                          className="p-1 hover:bg-slate-800 text-rose-400 rounded shrink-0"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddMember}
+                  className="text-[10px] text-violet-400 font-bold hover:underline mt-2 flex items-center gap-1"
+                >
+                  <UserPlus size={10} /> Add Member
+                </button>
+              </div>
 
               <div className="flex items-center gap-3 pt-4 border-t border-slate-900">
                 <button

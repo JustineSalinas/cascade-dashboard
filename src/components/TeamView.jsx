@@ -9,6 +9,7 @@ import {
   Activity, 
   Briefcase,
   AlertCircle,
+  FolderOpen,
   X 
 } from 'lucide-react';
 import { dbService } from '../services/db';
@@ -106,6 +107,21 @@ export default function TeamView({ activeTab, refreshTrigger, triggerRefresh }) 
     }
   };
 
+  // Derive all project IDs a member is involved in:
+  // 1. Manually assigned via Team modal (assignedProjects)
+  // 2. Auto-detected: added as a member from the ProjectsView workspace form (by name match)
+  const getMergedProjectIds = (member) => {
+    const manual = new Set(member.assignedProjects || []);
+    projects.forEach(proj => {
+      if (proj.members && proj.members.some(
+        m => m.name.trim().toLowerCase() === member.name.trim().toLowerCase()
+      )) {
+        manual.add(proj.id);
+      }
+    });
+    return Array.from(manual);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Page Header */}
@@ -165,26 +181,41 @@ export default function TeamView({ activeTab, refreshTrigger, triggerRefresh }) 
                   <a href={`mailto:${member.email}`} className="hover:text-violet-400 transition-colors font-medium truncate">{member.email}</a>
                 </div>
 
-                {/* Assigned Workspaces */}
+                {/* Assigned Workspaces — merged from manual assignments + workspace member lists */}
                 <div className="mt-5 border-t border-slate-900 pt-4">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Assigned Workspaces</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {member.assignedProjects && member.assignedProjects.length > 0 ? (
-                      member.assignedProjects.map(projId => {
-                        const proj = projects.find(p => p.id === projId);
-                        return proj ? (
-                          <span 
-                            key={projId} 
-                            className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-300 font-semibold"
-                          >
-                            {proj.name}
-                          </span>
-                        ) : null;
-                      })
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FolderOpen size={10} className="text-violet-400" />
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Assigned Workspaces</span>
+                  </div>
+                  {(() => {
+                    const mergedIds = getMergedProjectIds(member);
+                    const manualIds = new Set(member.assignedProjects || []);
+                    return mergedIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {mergedIds.map(projId => {
+                          const proj = projects.find(p => p.id === projId);
+                          if (!proj) return null;
+                          const isAutoDetected = !manualIds.has(projId);
+                          return (
+                            <span
+                              key={projId}
+                              title={isAutoDetected ? 'Added via workspace members list' : 'Manually assigned'}
+                              className={`px-2 py-0.5 rounded border text-[10px] font-semibold flex items-center gap-1 ${
+                                isAutoDetected
+                                  ? 'bg-violet-500/10 border-violet-500/20 text-violet-300'
+                                  : 'bg-slate-900 border-slate-800 text-slate-300'
+                              }`}
+                            >
+                              {isAutoDetected && <span className="w-1 h-1 rounded-full bg-violet-400 inline-block" />}
+                              {proj.name}
+                            </span>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <span className="text-[10px] text-slate-600 italic">No assigned projects</span>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
 
