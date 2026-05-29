@@ -9,7 +9,8 @@ import {
   Users,
   LogOut,
   ChevronRight,
-  Globe
+  Globe,
+  Tag
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
@@ -46,6 +47,7 @@ export default function Sidebar({ activeTab, setActiveTab, refreshTrigger, user 
       title: "Catalogue",
       items: [
         { id: 'catalogue', label: 'Services', icon: BookOpen },
+        { id: 'pricing', label: 'Pricing', icon: Tag },
         { id: 'personal-projects', label: 'Personal Projects', icon: Globe },
       ]
     }

@@ -9,6 +9,7 @@ import CatalogueView from './components/CatalogueView';
 import PersonalProjectsView from './components/PersonalProjectsView';
 import CalendarView from './components/CalendarView';
 import TeamView from './components/TeamView';
+import PricingView from './components/PricingView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -96,6 +97,8 @@ function App() {
             triggerRefresh={triggerRefresh}
           />
         );
+      case 'pricing':
+        return <PricingView />;
       case 'personal-projects':
         return (
           <PersonalProjectsView
