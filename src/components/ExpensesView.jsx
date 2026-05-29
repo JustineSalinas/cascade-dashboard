@@ -9,12 +9,14 @@ import {
   FileCode,
   Users,
   Briefcase,
-  X
+  X,
+  Globe
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
 export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh, formatAmount }) {
   const [expenses, setExpenses] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -22,12 +24,13 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
   // Form fields
   const [formDescription, setFormDescription] = useState('');
   const [formAmount, setFormAmount] = useState('');
-  const [formCategory, setFormCategory] = useState('infrastructure');
+  const [formCategory, setFormCategory] = useState('domains');
   const [formDate, setFormDate] = useState('');
-  const [formProjectAssociation, setFormProjectAssociation] = useState('All Projects');
+  const [formProjectAssociation, setFormProjectAssociation] = useState('Global / Shared');
 
   useEffect(() => {
     setExpenses(dbService.getExpenses());
+    setProjects(dbService.getProjects());
   }, [refreshTrigger, activeTab]);
 
   const handleSaveExpense = (e) => {
@@ -51,9 +54,9 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
     // Reset Form
     setFormDescription('');
     setFormAmount('');
-    setFormCategory('infrastructure');
+    setFormCategory('domains');
     setFormDate('');
-    setFormProjectAssociation('All Projects');
+    setFormProjectAssociation('Global / Shared');
     setShowAddModal(false);
   };
 
@@ -67,17 +70,22 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
   // Get dynamic breakdown by category
   const getCategoryStats = () => {
     const categories = {
-      infrastructure: 0,
-      licenses: 0,
+      domains: 0,
+      hosting: 0,
+      tooling: 0,
       contractors: 0,
-      operations: 0,
     };
     
     expenses.forEach(e => {
-      if (categories[e.category] !== undefined) {
-        categories[e.category] += e.amount;
+      let cat = e.category;
+      if (cat === 'infrastructure') cat = 'hosting';
+      if (cat === 'licenses') cat = 'tooling';
+      if (cat === 'operations') cat = 'domains';
+
+      if (categories[cat] !== undefined) {
+        categories[cat] += e.amount;
       } else {
-        categories.operations += e.amount;
+        categories.tooling += e.amount;
       }
     });
 
@@ -91,14 +99,26 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
   const filteredExpenses = expenses.filter(e => {
     const matchesSearch = e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           e.projectAssociation.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || e.category === categoryFilter;
+    
+    let cat = e.category;
+    if (cat === 'infrastructure') cat = 'hosting';
+    if (cat === 'licenses') cat = 'tooling';
+    if (cat === 'operations') cat = 'domains';
+
+    const matchesCategory = categoryFilter === 'all' || cat === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const getCategoryIcon = (category) => {
-    switch (category) {
-      case 'infrastructure': return <Server size={14} className="text-blue-400" />;
-      case 'licenses': return <Layers size={14} className="text-violet-400" />;
+    let cat = category;
+    if (cat === 'infrastructure') cat = 'hosting';
+    if (cat === 'licenses') cat = 'tooling';
+    if (cat === 'operations') cat = 'domains';
+
+    switch (cat) {
+      case 'domains': return <Globe size={14} className="text-amber-400" />;
+      case 'hosting': return <Server size={14} className="text-blue-400" />;
+      case 'tooling': return <Layers size={14} className="text-violet-400" />;
       case 'contractors': return <Users size={14} className="text-emerald-400" />;
       default: return <Briefcase size={14} className="text-slate-400" />;
     }
@@ -111,16 +131,16 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
         <div>
           <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Operating Expenditure (OpEx)</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Log cloud nodes, software tooling licenses, subcontractor retainers, and general assets.
+            Log domains, cloud hosting, software tools, and developer contractor retainers.
           </p>
         </div>
         <button
           onClick={() => {
             setFormDescription('');
             setFormAmount('');
-            setFormCategory('infrastructure');
+            setFormCategory('domains');
             setFormDate(new Date().toISOString().split('T')[0]);
-            setFormProjectAssociation('All Projects');
+            setFormProjectAssociation('Global / Shared');
             setShowAddModal(true);
           }}
           className="flex items-center gap-2 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-xs font-bold rounded-lg text-white shadow-md shadow-violet-500/20 transition-all cursor-pointer"
@@ -149,7 +169,7 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
               </div>
 
               <div className="flex items-center gap-1.5">
-                {['all', 'infrastructure', 'licenses', 'contractors', 'operations'].map((cat) => (
+                {['all', 'domains', 'hosting', 'tooling', 'contractors'].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
@@ -185,7 +205,13 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
                         <td className="px-5 py-3.5 capitalize">
                           <span className="flex items-center gap-1.5 text-slate-400">
                             {getCategoryIcon(exp.category)}
-                            <span>{exp.category}</span>
+                            <span>{(() => {
+                              let cat = exp.category;
+                              if (cat === 'infrastructure') return 'hosting';
+                              if (cat === 'licenses') return 'tooling';
+                              if (cat === 'operations') return 'domains';
+                              return cat;
+                            })()}</span>
                           </span>
                         </td>
                         <td className="px-5 py-3.5 text-slate-500">{exp.date}</td>
@@ -240,10 +266,10 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
                 const pct = totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0;
                 
                 const barColors = {
-                  infrastructure: 'bg-blue-500',
-                  licenses: 'bg-violet-500',
-                  contractors: 'bg-emerald-500',
-                  operations: 'bg-slate-500'
+                  domains: 'bg-amber-500',
+                  hosting: 'bg-blue-500',
+                  tooling: 'bg-violet-500',
+                  contractors: 'bg-emerald-500'
                 };
 
                 return (
@@ -318,10 +344,10 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
                     onChange={(e) => setFormCategory(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
                   >
-                    <option value="infrastructure">Infrastructure / Hosting</option>
-                    <option value="licenses">Licenses / Tools</option>
+                    <option value="domains">Domains / Registry</option>
+                    <option value="hosting">Hosting / Cloud Hosting</option>
+                    <option value="tooling">Tooling / API Seats</option>
                     <option value="contractors">Contractors / Salaries</option>
-                    <option value="operations">General Operations</option>
                   </select>
                 </div>
               </div>
@@ -338,14 +364,17 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Linked Workspace</label>
-                  <input
-                    type="text"
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Linked Project</label>
+                  <select
                     value={formProjectAssociation}
                     onChange={(e) => setFormProjectAssociation(e.target.value)}
-                    placeholder="e.g. Abstergo DD-2025"
                     className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
-                  />
+                  >
+                    <option value="Global / Shared">Global / Shared</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -16,6 +16,7 @@ import { dbService } from '../services/db';
 export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh, formatAmount }) {
   const [invoices, setInvoices] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -32,6 +33,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
   useEffect(() => {
     setInvoices(dbService.getInvoices());
     setProjects(dbService.getProjects());
+    setExpenses(dbService.getExpenses());
     // Auto-generate invoice number based on date/index
     setFormNumber(`INV-2026-${String(dbService.getInvoices().length + 1).padStart(3, '0')}`);
   }, [refreshTrigger, activeTab]);
@@ -152,43 +154,69 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
       </div>
 
       {/* Stats Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Contract Volume</span>
-            <h3 className="text-base font-black text-slate-100 mt-1 block">
-              {formatAmount(invoices.reduce((a, b) => a + b.amount, 0))}
-            </h3>
-          </div>
-          <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
-            <DollarSign size={16} />
-          </div>
-        </div>
+      {(() => {
+        const totalRevenue = invoices.reduce((a, b) => a + b.amount, 0);
+        const totalCollected = invoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.amount, 0);
+        const totalPending = invoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.amount, 0);
+        const totalExpenses = expenses.reduce((a, b) => a + b.amount, 0);
+        const cashFlow = totalCollected - totalExpenses;
 
-        <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Settled Claims</span>
-            <h3 className="text-base font-black text-emerald-400 mt-1 block">
-              {formatAmount(invoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.amount, 0))}
-            </h3>
-          </div>
-          <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <Check size={16} />
-          </div>
-        </div>
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Revenue */}
+            <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Revenue</span>
+                <h3 className="text-base font-black text-slate-100 mt-1 block">
+                  {formatAmount(totalRevenue)}
+                </h3>
+              </div>
+              <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                <DollarSign size={16} />
+              </div>
+            </div>
 
-        <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Accounts Receivable</span>
-            <h3 className="text-base font-black text-amber-400 mt-1 block">
-              {formatAmount(invoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.amount, 0))}
-            </h3>
+            {/* Collected */}
+            <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Collected</span>
+                <h3 className="text-base font-black text-emerald-400 mt-1 block">
+                  {formatAmount(totalCollected)}
+                </h3>
+              </div>
+              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <Check size={16} />
+              </div>
+            </div>
+
+            {/* Pending */}
+            <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Pending</span>
+                <h3 className="text-base font-black text-amber-400 mt-1 block">
+                  {formatAmount(totalPending)}
+                </h3>
+              </div>
+              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Clock size={16} />
+              </div>
+            </div>
+
+            {/* Cash Flow */}
+            <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Cash Flow</span>
+                <h3 className={`text-base font-black mt-1 block ${cashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {formatAmount(cashFlow)}
+                </h3>
+              </div>
+              <div className={`p-2 rounded-lg border ${cashFlow >= 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                <TrendingUp size={16} />
+              </div>
+            </div>
           </div>
-          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
-            <Clock size={16} />
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Filter and Table Section */}
       <div className="glass-panel rounded-xl border border-slate-900 overflow-hidden">

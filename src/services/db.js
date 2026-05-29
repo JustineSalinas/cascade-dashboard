@@ -7,10 +7,11 @@ const STORAGE_KEYS = {
   CATALOGUE: 'cdg_dashboard_catalogue',
   EVENTS: 'cdg_dashboard_events',
   TEAM: 'cdg_dashboard_team',
+  PERSONAL_PROJECTS: 'cdg_dashboard_personal_projects',
   INITIALIZED: 'cdg_dashboard_initialized'
 };
 
-const DB_VERSION_KEY = 'cdg_dashboard_db_version_v2';
+const DB_VERSION_KEY = 'cdg_dashboard_db_version_v3';
 
 // Database utility helper methods
 const getStorageItem = (key, fallback) => {
@@ -24,13 +25,34 @@ const setStorageItem = (key, value) => {
 
 export const initializeDatabase = (force = false) => {
   if (!localStorage.getItem(DB_VERSION_KEY) || force) {
-    setStorageItem(STORAGE_KEYS.PROJECTS, []);
-    setStorageItem(STORAGE_KEYS.INVOICES, []);
-    setStorageItem(STORAGE_KEYS.EXPENSES, []);
-    setStorageItem(STORAGE_KEYS.CATALOGUE, []);
-    setStorageItem(STORAGE_KEYS.EVENTS, []);
-    setStorageItem(STORAGE_KEYS.TEAM, []);
-    localStorage.setItem(DB_VERSION_KEY, 'v2');
+    setStorageItem(STORAGE_KEYS.PROJECTS, getStorageItem(STORAGE_KEYS.PROJECTS, []));
+    setStorageItem(STORAGE_KEYS.INVOICES, getStorageItem(STORAGE_KEYS.INVOICES, []));
+    setStorageItem(STORAGE_KEYS.EXPENSES, getStorageItem(STORAGE_KEYS.EXPENSES, []));
+    setStorageItem(STORAGE_KEYS.CATALOGUE, getStorageItem(STORAGE_KEYS.CATALOGUE, []));
+    setStorageItem(STORAGE_KEYS.EVENTS, getStorageItem(STORAGE_KEYS.EVENTS, []));
+    setStorageItem(STORAGE_KEYS.TEAM, getStorageItem(STORAGE_KEYS.TEAM, []));
+    
+    // Add default personal projects
+    setStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, [
+      {
+        id: 'pproj-1',
+        name: 'Obsidian Note Sync Daemon',
+        description: 'Lightweight daemon syncing local markdown vault directories to private cloud buckets with conflict-free replication.',
+        status: 'live',
+        link: 'https://github.com/JustineSalinas/obsidian-sync-daemon',
+        tech: 'Rust, AWS S3, SQLite'
+      },
+      {
+        id: 'pproj-2',
+        name: 'Vite Component Archetype',
+        description: 'Opinionated boilerplate for publishing standard library components with React, Tailwind v4, and automatic TypeScript packaging.',
+        status: 'development',
+        link: 'https://github.com/JustineSalinas/vite-react-archetype',
+        tech: 'React, TypeScript, Rollup'
+      }
+    ]);
+    
+    localStorage.setItem(DB_VERSION_KEY, 'v3');
     localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
   }
 };
@@ -162,5 +184,25 @@ export const dbService = {
     const list = dbService.getTeam();
     const updated = list.filter(m => m.id !== id);
     setStorageItem(STORAGE_KEYS.TEAM, updated);
+  },
+
+  // 7. Personal Projects API
+  getPersonalProjects: () => getStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, []),
+  savePersonalProject: (project) => {
+    const list = dbService.getPersonalProjects();
+    if (project.id) {
+      const idx = list.findIndex(p => p.id === project.id);
+      if (idx !== -1) list[idx] = { ...list[idx], ...project };
+    } else {
+      project.id = `pproj-${Date.now()}`;
+      list.push(project);
+    }
+    setStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, list);
+    return project;
+  },
+  deletePersonalProject: (id) => {
+    const list = dbService.getPersonalProjects();
+    const updated = list.filter(p => p.id !== id);
+    setStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, updated);
   }
 };
