@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '../services/db';
 
-export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh, formatAmount }) {
+export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh, formatAmount, currency }) {
   const [invoices, setInvoices] = useState([]);
   const [projects, setProjects] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -46,10 +46,15 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
       return;
     }
 
+    let finalAmount = parseFloat(formAmount);
+    if (currency === 'PHP') {
+      finalAmount = finalAmount / 58;
+    }
+
     const invoiceData = {
       invoiceNumber: formNumber,
       client: formClient,
-      amount: parseFloat(formAmount),
+      amount: finalAmount,
       issuedDate: formIssuedDate,
       dueDate: formDueDate,
       projectAssociation: formProjectAssociation,
@@ -360,7 +365,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Amount to Bill</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Amount to Bill ({currency === 'PHP' ? '₱' : '$'})</label>
                   <input
                     type="number"
                     required

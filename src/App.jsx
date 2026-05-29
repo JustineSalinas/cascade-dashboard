@@ -87,6 +87,7 @@ function App() {
             refreshTrigger={refreshTrigger}
             triggerRefresh={triggerRefresh}
             formatAmount={formatAmount}
+            currency={currency}
           />
         );
       case 'expenses':
@@ -96,6 +97,7 @@ function App() {
             refreshTrigger={refreshTrigger}
             triggerRefresh={triggerRefresh}
             formatAmount={formatAmount}
+            currency={currency}
           />
         );
       case 'catalogue':
