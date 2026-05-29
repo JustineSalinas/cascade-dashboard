@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import DashboardView from './components/DashboardView';
@@ -13,6 +13,22 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState(null);
   const [currency, setCurrency] = useState('USD'); // Global currency toggled between USD and PHP
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('cdg_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+    localStorage.setItem('cdg_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
   
   // A refresh trigger counter to force child components to pull latest LocalStorage state
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -128,6 +144,8 @@ function App() {
           refreshTrigger={refreshTrigger}
           currency={currency}
           setCurrency={setCurrency}
+          theme={theme}
+          toggleTheme={toggleTheme}
         />
 
         {/* Viewport - Renders active view with proper padding */}

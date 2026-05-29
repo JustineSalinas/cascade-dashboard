@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Search, Settings, Database } from 'lucide-react';
+import { Bell, Search, Settings, Database, Sun, Moon } from 'lucide-react';
 import { dbService } from '../services/db';
 
-export default function Header({ activeTab, setActiveTab, setSelectedProject, refreshTrigger, currency, setCurrency }) {
+export default function Header({ activeTab, setActiveTab, setSelectedProject, refreshTrigger, currency, setCurrency, theme, toggleTheme }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -235,6 +235,15 @@ export default function Header({ activeTab, setActiveTab, setSelectedProject, re
             </div>
           )}
         </div>
+
+        {/* Theme Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 rounded-lg border border-slate-800/60 transition-all cursor-pointer"
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
 
         {/* Wipe Local Storage Database */}
         <button
