@@ -109,7 +109,7 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)', fontSize: '24px' }}>Operating Expenditure (OpEx)</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Operating Expenditure (OpEx)</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Log cloud nodes, software tooling licenses, subcontractor retainers, and general assets.
           </p>
@@ -226,7 +226,7 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
             <div className="p-4 bg-slate-950/40 border border-slate-900 rounded-xl flex items-center justify-between">
               <div>
                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Gross Expenses</span>
-                <span className="text-lg font-black text-rose-400 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>{formatAmount(totalExpenses)}</span>
+                <span className="text-lg font-black text-rose-400 mt-1 block">{formatAmount(totalExpenses)}</span>
               </div>
               <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
                 <Receipt size={18} />

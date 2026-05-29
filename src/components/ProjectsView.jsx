@@ -286,7 +286,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
                         Due: {p.dueDate}
                       </span>
                     </div>
-                    <h3 className="text-sm font-bold text-slate-100 leading-tight mb-2 truncate" style={{ fontFamily: 'var(--font-display)', fontSize: '16px' }}>
+                    <h3 className="text-sm font-bold text-slate-100 leading-tight mb-2 truncate">
                       {p.name}
                     </h3>
 

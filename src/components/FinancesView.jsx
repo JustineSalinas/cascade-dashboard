@@ -128,7 +128,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)', fontSize: '24px' }}>Ledger Console & Invoicing</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Ledger Console & Invoicing</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Issue billings to clients, manage payment receipts, and audit contract values.
           </p>
@@ -156,7 +156,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
         <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Contract Volume</span>
-            <h3 className="text-base font-black text-slate-100 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>
+            <h3 className="text-base font-black text-slate-100 mt-1 block">
               {formatAmount(invoices.reduce((a, b) => a + b.amount, 0))}
             </h3>
           </div>
@@ -168,7 +168,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
         <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Settled Claims</span>
-            <h3 className="text-base font-black text-emerald-400 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>
+            <h3 className="text-base font-black text-emerald-400 mt-1 block">
               {formatAmount(invoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.amount, 0))}
             </h3>
           </div>
@@ -180,7 +180,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
         <div className="glass-card p-4 rounded-xl border border-slate-900 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Accounts Receivable</span>
-            <h3 className="text-base font-black text-amber-400 mt-1 block" style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>
+            <h3 className="text-base font-black text-amber-400 mt-1 block">
               {formatAmount(invoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.amount, 0))}
             </h3>
           </div>

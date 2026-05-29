@@ -110,7 +110,7 @@ export default function TeamView({ activeTab, refreshTrigger, triggerRefresh }) 
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)', fontSize: '24px' }}>CDG Engineering Team</h2>
+          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">CDG Engineering Team</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Manage developer profiles, workloads, availability status, and workspace assignments.
           </p>
