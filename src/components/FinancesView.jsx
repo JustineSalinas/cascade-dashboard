@@ -332,12 +332,12 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
 
             <h3 className="text-base font-extrabold text-slate-100 mb-4 flex items-center gap-2">
               <Database size={16} className="text-violet-400" />
-              <span>Issue New Client Billing</span>
+              <span>Create New Invoice</span>
             </h3>
 
             <form onSubmit={handleSaveInvoice} className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Invoice Number (Auto)</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Invoice Number</label>
                 <input
                   type="text"
                   disabled
@@ -360,7 +360,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Invoice Value ($)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Amount to Bill</label>
                   <input
                     type="number"
                     required
@@ -371,7 +371,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Initial Status</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Status</label>
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
@@ -386,7 +386,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Issued Date</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Date Issued</label>
                   <input
                     type="date"
                     required
@@ -396,7 +396,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Due Date</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Payment Due Date</label>
                   <input
                     type="date"
                     required
@@ -408,13 +408,13 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Link Project Workspace</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Link to Project</label>
                 <select
                   value={formProjectAssociation}
                   onChange={(e) => setFormProjectAssociation(e.target.value)}
                   className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
                 >
-                  <option value="">-- Optional: Link Workspace --</option>
+                  <option value="">-- Optional: Choose Project --</option>
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -433,7 +433,7 @@ export default function FinancesView({ activeTab, refreshTrigger, triggerRefresh
                   type="submit"
                   className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-xs font-semibold text-white rounded-lg transition-all"
                 >
-                  Confirm Issue
+                  Save Invoice
                 </button>
               </div>
             </form>

@@ -324,7 +324,7 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Cost Value ($)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Cost Value (₱)</label>
                   <input
                     type="number"
                     required
