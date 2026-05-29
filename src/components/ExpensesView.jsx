@@ -8,7 +8,6 @@ import {
   Server,
   Layers,
   FileCode,
-  Users,
   Briefcase,
   X,
   Globe
@@ -74,7 +73,6 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
       domains: 0,
       hosting: 0,
       tooling: 0,
-      contractors: 0,
     };
     
     expenses.forEach(e => {
@@ -120,7 +118,6 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
       case 'domains': return <Globe size={14} className="text-amber-400" />;
       case 'hosting': return <Server size={14} className="text-blue-400" />;
       case 'tooling': return <Layers size={14} className="text-violet-400" />;
-      case 'contractors': return <Users size={14} className="text-emerald-400" />;
       default: return <Briefcase size={14} className="text-slate-400" />;
     }
   };
@@ -132,7 +129,7 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
         <div>
           <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Operating Expenditure (OpEx)</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Log domains, cloud hosting, software tools, and developer contractor retainers.
+          Log domains, cloud hosting, and software tools used to develop your listed projects.
           </p>
         </div>
         <button
@@ -170,7 +167,7 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
               </div>
 
               <div className="flex items-center gap-1.5">
-                {['all', 'domains', 'hosting', 'tooling', 'contractors'].map((cat) => (
+                {['all', 'domains', 'hosting', 'tooling'].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
@@ -270,7 +267,6 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
                   domains: 'bg-amber-500',
                   hosting: 'bg-blue-500',
                   tooling: 'bg-violet-500',
-                  contractors: 'bg-emerald-500'
                 };
 
                 return (
@@ -348,7 +344,6 @@ export default function ExpensesView({ activeTab, refreshTrigger, triggerRefresh
                     <option value="domains">Domains / Registry</option>
                     <option value="hosting">Hosting / Cloud Hosting</option>
                     <option value="tooling">Tooling / API Seats</option>
-                    <option value="contractors">Contractors / Salaries</option>
                   </select>
                 </div>
               </div>

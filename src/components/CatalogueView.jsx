@@ -1,323 +1,269 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { 
-  Copy, 
-  Check, 
-  Search, 
-  Trash2, 
-  Plus, 
-  Link2, 
-  Code, 
+import React, { useState } from 'react';
+import {
+  Globe,
+  Smartphone,
+  Code2,
+  Cpu,
+  Database,
+  Cloud,
+  Zap,
+  BarChart3,
+  Layers,
+  ChevronRight,
+  Star,
   Sparkles,
-  BookOpen,
-  X,
-  Globe
+  TrendingUp,
+  Shield
 } from 'lucide-react';
-import { dbService } from '../services/db';
 
-export default function CatalogueView({ activeTab, refreshTrigger, triggerRefresh }) {
-  const [items, setItems] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  
-  // Clipboard copy tracker
-  const [copiedId, setCopiedId] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+const tiers = [
+  {
+    id: 'tier1',
+    tier: 'Tier 1',
+    label: 'Digital Presence & Branding',
+    tagline: 'The bread-and-butter services that are quick to deploy and get cash flowing.',
+    accentColor: 'from-emerald-500 to-teal-600',
+    accentLight: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+    accentBadge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
+    glowColor: 'shadow-emerald-500/10',
+    barColor: 'bg-emerald-500',
+    icon: Globe,
+    services: [
+      {
+        id: 's1',
+        name: 'Web Design & Development',
+        description:
+          'High-converting landing pages, corporate websites, and interactive portfolios engineered for performance and aesthetic precision.',
+        icon: Globe,
+        tags: ['Landing Pages', 'Corporate Sites', 'Portfolios'],
+      },
+      {
+        id: 's2',
+        name: 'Social Media Management',
+        description:
+          'End-to-end brand management, content scheduling, and digital presence optimization across all major platforms.',
+        icon: Smartphone,
+        tags: ['Brand Management', 'Content Scheduling', 'Digital Presence'],
+      },
+    ],
+  },
+  {
+    id: 'tier2',
+    tier: 'Tier 2',
+    label: 'Custom Web Applications & Systems',
+    tagline: 'The core engineering services where you can charge premium agency rates.',
+    accentColor: 'from-violet-500 to-indigo-600',
+    accentLight: 'bg-violet-500/10 border-violet-500/20 text-violet-400',
+    accentBadge: 'bg-violet-500/15 text-violet-300 border-violet-500/25',
+    glowColor: 'shadow-violet-500/10',
+    barColor: 'bg-violet-500',
+    icon: Code2,
+    services: [
+      {
+        id: 's3',
+        name: 'Custom Software Development',
+        description:
+          'Building bespoke web applications tailored to specific operational needs — from localized digital delivery systems to financial tracking apps.',
+        icon: Code2,
+        tags: ['Web Apps', 'Bespoke Systems', 'Operational Tools'],
+      },
+      {
+        id: 's4',
+        name: 'Automated Tracking Solutions',
+        description:
+          'Developing custom, hardware-free attendance and tracking systems capable of handling hundreds of users efficiently with zero extra infrastructure.',
+        icon: BarChart3,
+        tags: ['Attendance Systems', 'Tracking', 'Scalable'],
+      },
+      {
+        id: 's5',
+        name: 'Data Aggregation Pipelines',
+        description:
+          'Building secure backend systems that pull, organize, and synchronize data from multiple sources into a single unified dashboard.',
+        icon: Database,
+        tags: ['Pipelines', 'Backend', 'Dashboard Sync'],
+      },
+    ],
+  },
+  {
+    id: 'tier3',
+    tier: 'Tier 3',
+    label: 'Advanced Integration',
+    tagline: 'The cutting-edge services that separate you from standard web-design agencies.',
+    accentColor: 'from-amber-500 to-orange-600',
+    accentLight: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    accentBadge: 'bg-amber-500/15 text-amber-300 border-amber-500/25',
+    glowColor: 'shadow-amber-500/10',
+    barColor: 'bg-amber-500',
+    icon: Cpu,
+    services: [
+      {
+        id: 's6',
+        name: 'AI & Real-Time Processing',
+        description:
+          'Integrating lightweight AI models (like MediaPipe) directly into web applications for real-time video, text, or data processing at the edge.',
+        icon: Cpu,
+        tags: ['MediaPipe', 'Real-Time AI', 'Edge Processing'],
+      },
+      {
+        id: 's7',
+        name: 'Cloud Deployment & Architecture',
+        description:
+          'Setting up reliable hosting, database management using tools like PostgreSQL or Supabase, and seamless CI/CD deployment pipelines.',
+        icon: Cloud,
+        tags: ['PostgreSQL', 'Supabase', 'CI/CD Pipelines'],
+      },
+    ],
+  },
+];
 
-  // Form fields (Catalogue)
-  const [formName, setFormName] = useState('');
-  const [formDesc, setFormDesc] = useState('');
-  const [formType, setFormType] = useState('npm');
-  const [formLink, setFormLink] = useState('');
-  const [formCommand, setFormCommand] = useState('');
+const tierIcons = { tier1: TrendingUp, tier2: Layers, tier3: Sparkles };
 
-  useEffect(() => {
-    setItems(dbService.getCatalogueItems());
-  }, [refreshTrigger, activeTab]);
+export default function CatalogueView() {
+  const [activeTier, setActiveTier] = useState('all');
 
-  const handleCopy = (id, command) => {
-    navigator.clipboard.writeText(command)
-      .then(() => {
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 1800);
-      })
-      .catch(err => {
-        console.error("Failed to copy command: ", err);
-      });
-  };
-
-  const handleSaveItem = (e) => {
-    e.preventDefault();
-    if (!formName || !formDesc || !formCommand) {
-      alert("Please fill in name, description, and command/terminal line fields.");
-      return;
-    }
-
-    const newItem = {
-      name: formName,
-      description: formDesc,
-      type: formType,
-      link: formLink || 'https://github.com/JustineSalinas/cascade-dashboard',
-      command: formCommand
-    };
-
-    dbService.saveCatalogueItem(newItem);
-    triggerRefresh();
-
-    // Reset Form
-    setFormName('');
-    setFormDesc('');
-    setFormType('npm');
-    setFormLink('');
-    setFormCommand('');
-    setShowAddModal(false);
-  };
-
-  const handleDeleteItem = (id) => {
-    if (confirm("Are you sure you want to delete this catalogue entry?")) {
-      dbService.deleteCatalogueItem(id);
-      triggerRefresh();
-    }
-  };
-
-
-
-  // Filter items
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || item.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  const getBadgeStyle = (type) => {
-    switch (type) {
-      case 'npm':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      case 'template':
-        return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-      case 'api':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      default:
-        return 'bg-slate-800 text-slate-400';
-    }
-  };
+  const visibleTiers = activeTier === 'all' ? tiers : tiers.filter(t => t.id === activeTier);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up">
+
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">Catalogue Registry & Assets</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Internal shared library assets, boilerplate templates, and core API credentials directories.
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-1 h-5 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600" />
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Service Catalogue</span>
+          </div>
+          <h2 className="text-2xl font-black text-slate-100 tracking-tight leading-tight">
+            What We Build & Deliver
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 max-w-md leading-relaxed">
+            Three progressive tiers of digital services — from rapid-deploy branding to advanced AI integration.
           </p>
         </div>
+
+        {/* Stats pills */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg">
+            <Shield size={12} className="text-violet-400" />
+            <span className="text-[10px] font-bold text-slate-300">3 Service Tiers</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg">
+            <Star size={12} className="text-amber-400" />
+            <span className="text-[10px] font-bold text-slate-300">7 Core Services</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tier Filter Tabs */}
+      <div className="flex items-center gap-2 flex-wrap">
         <button
-          onClick={() => {
-            setFormName('');
-            setFormDesc('');
-            setFormType('npm');
-            setFormLink('');
-            setFormCommand('');
-            setShowAddModal(true);
-          }}
-          className="flex items-center gap-2 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-xs font-bold rounded-lg text-white shadow-md shadow-violet-500/20 transition-all cursor-pointer"
+          onClick={() => setActiveTier('all')}
+          className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+            activeTier === 'all'
+              ? 'bg-slate-100 text-slate-900 border-slate-200'
+              : 'text-slate-400 border-slate-800 hover:border-slate-600 hover:text-slate-200'
+          }`}
         >
-          <Plus size={14} />
-          <span>Register Asset</span>
+          All Tiers
         </button>
+        {tiers.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTier(t.id)}
+            className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+              activeTier === t.id
+                ? t.accentLight
+                : 'text-slate-400 border-slate-800 hover:border-slate-600 hover:text-slate-200'
+            }`}
+          >
+            {t.tier}
+          </button>
+        ))}
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-slate-950/20 border border-slate-900 p-3 rounded-xl">
-        <div className="relative w-full sm:w-72">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search packages, templates, boilerplates..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500/50"
-          />
-        </div>
+      {/* Tier Cards */}
+      <div className="space-y-8">
+        {visibleTiers.map((tier, tierIdx) => {
+          const TierIcon = tier.icon;
+          return (
+            <div key={tier.id} className="space-y-4">
 
-        <div className="flex items-center gap-1.5">
-          {['all', 'npm', 'template', 'api'].map((type) => (
-            <button
-              key={type}
-              onClick={() => setTypeFilter(type)}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
-                typeFilter === type
-                  ? 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-                  : 'text-slate-500 border-transparent hover:text-slate-300'
-              }`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredItems.length > 0 ? (
-          filteredItems.map((item) => (
-            <div 
-              key={item.id}
-              className="glass-card rounded-xl border border-slate-900 p-4 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2.5 py-0.5 rounded text-[8.5px] font-bold uppercase tracking-wider border ${getBadgeStyle(item.type)}`}>
-                    {item.type}
-                  </span>
-                  
-                  <div className="flex items-center gap-2">
-                    <a 
-                      href={item.link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-900 border border-transparent rounded transition-all"
-                    >
-                      <Link2 size={13} />
-                    </a>
-                    <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-slate-900 border border-transparent rounded transition-all cursor-pointer"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
+              {/* Tier Header Banner */}
+              <div className={`glass-panel rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center gap-4 shadow-lg ${tier.glowColor} border-slate-800`}>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tier.accentColor} flex items-center justify-center shadow-lg shrink-0`}>
+                  <TierIcon size={22} className="text-white" />
                 </div>
-
-                <h3 className="text-sm font-bold text-slate-100 mb-1">{item.name}</h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed mb-4">{item.description}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${tier.accentBadge}`}>
+                      {tier.tier}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-100 leading-tight">{tier.label}</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{tier.tagline}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-bold text-slate-500">{tier.services.length} services</span>
+                  <ChevronRight size={12} className="text-slate-600" />
+                </div>
               </div>
 
-              {/* Console Trigger block */}
-              <div className="bg-slate-950/80 rounded-lg p-2 border border-slate-900 flex items-center justify-between gap-3 overflow-hidden">
-                <span className="font-mono text-[10px] text-slate-300 truncate select-all">{item.command}</span>
-                <button
-                  onClick={() => handleCopy(item.id, item.command)}
-                  className={`p-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 select-none active:scale-95 cursor-pointer ${
-                    copiedId === item.id 
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-                  }`}
-                >
-                  {copiedId === item.id ? <Check size={11} /> : <Copy size={11} />}
-                  <span>{copiedId === item.id ? 'Copied' : 'Copy'}</span>
-                </button>
+              {/* Service Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pl-1">
+                {tier.services.map((svc) => {
+                  const SvcIcon = svc.icon;
+                  return (
+                    <div
+                      key={svc.id}
+                      className="glass-card rounded-xl border border-slate-900 p-5 flex flex-col gap-3 hover:border-slate-700 transition-all group"
+                    >
+                      {/* Icon + Name */}
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${tier.accentColor} flex items-center justify-center shadow-md shrink-0 group-hover:scale-105 transition-transform`}>
+                          <SvcIcon size={16} className="text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-slate-100 leading-tight">{svc.name}</h4>
+                          <div className={`w-8 h-0.5 rounded-full mt-1.5 ${tier.barColor}`} />
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-[11px] text-slate-400 leading-relaxed flex-1">{svc.description}</p>
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {svc.tags.map(tag => (
+                          <span
+                            key={tag}
+                            className={`px-2 py-0.5 rounded text-[8.5px] font-bold uppercase tracking-wider border ${tier.accentBadge}`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ))
-        ) : (
-          <div className="col-span-2 text-center py-20 glass-panel rounded-xl border border-slate-900 flex flex-col items-center justify-center text-slate-500">
-            <BookOpen size={32} className="mb-2 text-slate-600 animate-pulse" />
-            <span className="text-xs">No registered packages or boilerplates match your filter queries.</span>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* Add Catalog Item Modal */}
-      {showAddModal && createPortal(
-        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[9999] p-4 pl-64 pt-20 animate-fade-in">
-          <div className="glass-panel w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 p-6 shadow-2xl animate-fade-in-up relative">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg"
-            >
-              <X size={16} />
-            </button>
-
-            <h3 className="text-base font-extrabold text-slate-100 mb-4 flex items-center gap-2">
-              <Sparkles size={16} className="text-violet-400" />
-              <span>Register Shared Development Asset</span>
-            </h3>
-
-            <form onSubmit={handleSaveItem} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Asset Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="e.g. CDG UI Components"
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Asset Type</label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
-                  >
-                    <option value="npm">NPM Package (.tgz)</option>
-                    <option value="template">Git Template Repo</option>
-                    <option value="api">API Endpoint Spec</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Description</label>
-                <textarea
-                  required
-                  rows="2.5"
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Provide brief details on what this template solves and instructions for engineers..."
-                  className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Documentation / Repository Link</label>
-                <input
-                  type="url"
-                  value={formLink}
-                  onChange={(e) => setFormLink(e.target.value)}
-                  placeholder="https://github.com/JustineSalinas/cascade-dashboard"
-                  className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">CLI Trigger Command / Package URL</label>
-                <input
-                  type="text"
-                  required
-                  value={formCommand}
-                  onChange={(e) => setFormCommand(e.target.value)}
-                  placeholder="e.g. npm install @cdg-ui/react"
-                  className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 pt-4 border-t border-slate-900">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2 bg-slate-900 hover:bg-slate-850 text-xs font-semibold text-slate-400 rounded-lg transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-xs font-semibold text-white rounded-lg transition-all"
-                >
-                  Save Asset
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Bottom CTA / Note */}
+      <div className="glass-panel rounded-2xl border border-slate-800 p-6 flex flex-col sm:flex-row items-center gap-4 bg-gradient-to-r from-violet-500/5 to-indigo-500/5">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shrink-0">
+          <Zap size={18} className="text-white" />
+        </div>
+        <div className="flex-1 text-center sm:text-left">
+          <p className="text-sm font-bold text-slate-200">Ready to scope a project?</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Services are bundled or quoted individually. Log active project workspaces under the Projects section to track deliverables and timelines.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

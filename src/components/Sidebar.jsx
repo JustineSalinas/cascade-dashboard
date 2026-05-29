@@ -43,9 +43,9 @@ export default function Sidebar({ activeTab, setActiveTab, refreshTrigger, user 
       ]
     },
     {
-      title: "Registry & Assets",
+      title: "Catalogue",
       items: [
-        { id: 'catalogue', label: 'Catalogue', icon: BookOpen },
+        { id: 'catalogue', label: 'Services', icon: BookOpen },
         { id: 'personal-projects', label: 'Personal Projects', icon: Globe },
       ]
     }
