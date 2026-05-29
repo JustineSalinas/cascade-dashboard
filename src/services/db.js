@@ -1,208 +1,249 @@
-// Database Service Layer for LocalStorage
+// Database Service Layer — JSONBin.io Cloud Storage
+// All reads are synchronous (from in-memory cache).
+// All writes update cache immediately and push to JSONBin async.
+// Polls JSONBin every 5 s; fires onDataChange() when remote data differs.
 
-const STORAGE_KEYS = {
-  PROJECTS: 'cdg_dashboard_projects',
-  INVOICES: 'cdg_dashboard_invoices',
-  EXPENSES: 'cdg_dashboard_expenses',
-  CATALOGUE: 'cdg_dashboard_catalogue',
-  EVENTS: 'cdg_dashboard_events',
-  TEAM: 'cdg_dashboard_team',
-  PERSONAL_PROJECTS: 'cdg_dashboard_personal_projects',
-  INITIALIZED: 'cdg_dashboard_initialized'
+const BIN_ID  = '6a19897b21f9ee59d29999a5';
+const API_KEY = '$2a$10$Rm.TrsK8f8QaKdjjQfi9tu6ad9Mpb6OrbJt4zfVMBeDbj7PEiMd66';
+const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'X-Master-Key': API_KEY,
+  'X-Bin-Versioning': 'false',
 };
 
-const DB_VERSION_KEY = 'cdg_dashboard_db_version_v3';
-
-// Database utility helper methods
-const getStorageItem = (key, fallback) => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : fallback;
+// ─── In-memory cache ────────────────────────────────────────────────────────
+let cache = {
+  projects: [],
+  invoices: [],
+  expenses: [],
+  catalogue: [],
+  events: [],
+  team: [],
+  personal_projects: [],
 };
 
-const setStorageItem = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
+// ─── Change listeners (used by App.jsx to trigger re-renders) ────────────────
+let changeListeners = [];
+export const onDataChange = (cb) => {
+  changeListeners.push(cb);
+  // Returns unsubscribe function
+  return () => { changeListeners = changeListeners.filter(c => c !== cb); };
 };
+const notifyChange = () => changeListeners.forEach(cb => cb());
 
-export const initializeDatabase = (force = false) => {
-  if (!localStorage.getItem(DB_VERSION_KEY) || force) {
-    setStorageItem(STORAGE_KEYS.PROJECTS, getStorageItem(STORAGE_KEYS.PROJECTS, []));
-    setStorageItem(STORAGE_KEYS.INVOICES, getStorageItem(STORAGE_KEYS.INVOICES, []));
-    setStorageItem(STORAGE_KEYS.EXPENSES, getStorageItem(STORAGE_KEYS.EXPENSES, []));
-    setStorageItem(STORAGE_KEYS.CATALOGUE, getStorageItem(STORAGE_KEYS.CATALOGUE, []));
-    setStorageItem(STORAGE_KEYS.EVENTS, getStorageItem(STORAGE_KEYS.EVENTS, []));
-    setStorageItem(STORAGE_KEYS.TEAM, getStorageItem(STORAGE_KEYS.TEAM, []));
-    
-    // Add default personal projects
-    setStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, [
-      {
-        id: 'pproj-1',
-        name: 'Obsidian Note Sync Daemon',
-        description: 'Lightweight daemon syncing local markdown vault directories to private cloud buckets with conflict-free replication.',
-        status: 'live',
-        link: 'https://github.com/JustineSalinas/obsidian-sync-daemon',
-        tech: 'Rust, AWS S3, SQLite'
-      },
-      {
-        id: 'pproj-2',
-        name: 'Vite Component Archetype',
-        description: 'Opinionated boilerplate for publishing standard library components with React, Tailwind v4, and automatic TypeScript packaging.',
-        status: 'development',
-        link: 'https://github.com/JustineSalinas/vite-react-archetype',
-        tech: 'React, TypeScript, Rollup'
-      }
-    ]);
-    
-    localStorage.setItem(DB_VERSION_KEY, 'v3');
-    localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+// ─── JSONBin helpers ─────────────────────────────────────────────────────────
+const fetchBin = async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/latest`, { headers: HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json.record ?? json;
+  } catch (e) {
+    console.warn('[db] fetchBin error:', e.message);
+    return null;
   }
 };
 
-// Auto initialize on import
-initializeDatabase();
+const pushBin = async () => {
+  try {
+    const res = await fetch(BASE_URL, {
+      method: 'PUT',
+      headers: HEADERS,
+      body: JSON.stringify(cache),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (e) {
+    console.warn('[db] pushBin error:', e.message);
+  }
+};
 
+// ─── Initialise: load remote data into cache ─────────────────────────────────
+let lastSnapshot = '';
+
+export const initializeDatabase = async (force = false) => {
+  const remote = await fetchBin();
+  if (remote) {
+    cache = { ...cache, ...remote };
+    lastSnapshot = JSON.stringify(cache);
+    notifyChange();
+  }
+};
+
+// ─── Polling: detect remote changes from other users ─────────────────────────
+const startPolling = () => {
+  setInterval(async () => {
+    const remote = await fetchBin();
+    if (!remote) return;
+    const snap = JSON.stringify(remote);
+    if (snap !== lastSnapshot) {
+      lastSnapshot = snap;
+      cache = { ...cache, ...remote };
+      notifyChange();
+    }
+  }, 5000); // every 5 seconds
+};
+
+// Auto-init on import
+initializeDatabase().then(() => {
+  lastSnapshot = JSON.stringify(cache);
+  startPolling();
+});
+
+// ─── Public dbService API (same surface as before) ───────────────────────────
 export const dbService = {
-  // Clear database completely
-  resetDatabase: () => {
-    initializeDatabase(true);
+
+  resetDatabase: async () => {
+    cache = { projects: [], invoices: [], expenses: [], catalogue: [], events: [], team: [], personal_projects: [] };
+    await pushBin();
+    notifyChange();
   },
 
-  // 1. Projects API
-  getProjects: () => getStorageItem(STORAGE_KEYS.PROJECTS, []),
+  // 1. Projects
+  getProjects: () => cache.projects,
   saveProject: (project) => {
-    const list = dbService.getProjects();
+    const list = [...cache.projects];
     if (project.id) {
       const idx = list.findIndex(p => p.id === project.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...project };
+      else list.push(project);
     } else {
       project.id = `proj-${Date.now()}`;
       list.push(project);
     }
-    setStorageItem(STORAGE_KEYS.PROJECTS, list);
+    cache.projects = list;
+    pushBin();
     return project;
   },
   deleteProject: (id) => {
-    const list = dbService.getProjects();
-    const updated = list.filter(p => p.id !== id);
-    setStorageItem(STORAGE_KEYS.PROJECTS, updated);
+    cache.projects = cache.projects.filter(p => p.id !== id);
+    pushBin();
   },
 
-  // 2. Invoices API
-  getInvoices: () => getStorageItem(STORAGE_KEYS.INVOICES, []),
+  // 2. Invoices
+  getInvoices: () => cache.invoices,
   saveInvoice: (invoice) => {
-    const list = dbService.getInvoices();
+    const list = [...cache.invoices];
     if (invoice.id) {
       const idx = list.findIndex(i => i.id === invoice.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...invoice };
+      else list.push(invoice);
     } else {
       invoice.id = `inv-${Date.now()}`;
       list.push(invoice);
     }
-    setStorageItem(STORAGE_KEYS.INVOICES, list);
+    cache.invoices = list;
+    pushBin();
     return invoice;
   },
   deleteInvoice: (id) => {
-    const list = dbService.getInvoices();
-    const updated = list.filter(i => i.id !== id);
-    setStorageItem(STORAGE_KEYS.INVOICES, updated);
+    cache.invoices = cache.invoices.filter(i => i.id !== id);
+    pushBin();
   },
 
-  // 3. Expenses API
-  getExpenses: () => getStorageItem(STORAGE_KEYS.EXPENSES, []),
+  // 3. Expenses
+  getExpenses: () => cache.expenses,
   saveExpense: (expense) => {
-    const list = dbService.getExpenses();
+    const list = [...cache.expenses];
     if (expense.id) {
       const idx = list.findIndex(e => e.id === expense.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...expense };
+      else list.push(expense);
     } else {
       expense.id = `exp-${Date.now()}`;
       list.push(expense);
     }
-    setStorageItem(STORAGE_KEYS.EXPENSES, list);
+    cache.expenses = list;
+    pushBin();
     return expense;
   },
   deleteExpense: (id) => {
-    const list = dbService.getExpenses();
-    const updated = list.filter(e => e.id !== id);
-    setStorageItem(STORAGE_KEYS.EXPENSES, updated);
+    cache.expenses = cache.expenses.filter(e => e.id !== id);
+    pushBin();
   },
 
-  // 4. Catalogue API
-  getCatalogueItems: () => getStorageItem(STORAGE_KEYS.CATALOGUE, []),
+  // 4. Catalogue
+  getCatalogueItems: () => cache.catalogue,
   saveCatalogueItem: (item) => {
-    const list = dbService.getCatalogueItems();
+    const list = [...cache.catalogue];
     if (item.id) {
       const idx = list.findIndex(i => i.id === item.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...item };
+      else list.push(item);
     } else {
       item.id = `cat-${Date.now()}`;
       list.push(item);
     }
-    setStorageItem(STORAGE_KEYS.CATALOGUE, list);
+    cache.catalogue = list;
+    pushBin();
     return item;
   },
   deleteCatalogueItem: (id) => {
-    const list = dbService.getCatalogueItems();
-    const updated = list.filter(i => i.id !== id);
-    setStorageItem(STORAGE_KEYS.CATALOGUE, updated);
+    cache.catalogue = cache.catalogue.filter(i => i.id !== id);
+    pushBin();
   },
 
-  // 5. Events API
-  getEvents: () => getStorageItem(STORAGE_KEYS.EVENTS, []),
+  // 5. Events
+  getEvents: () => cache.events,
   saveEvent: (event) => {
-    const list = dbService.getEvents();
+    const list = [...cache.events];
     if (event.id) {
       const idx = list.findIndex(e => e.id === event.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...event };
+      else list.push(event);
     } else {
       event.id = `evt-${Date.now()}`;
       list.push(event);
     }
-    setStorageItem(STORAGE_KEYS.EVENTS, list);
+    cache.events = list;
+    pushBin();
     return event;
   },
   deleteEvent: (id) => {
-    const list = dbService.getEvents();
-    const updated = list.filter(e => e.id !== id);
-    setStorageItem(STORAGE_KEYS.EVENTS, updated);
+    cache.events = cache.events.filter(e => e.id !== id);
+    pushBin();
   },
 
-  // 6. Team API
-  getTeam: () => getStorageItem(STORAGE_KEYS.TEAM, []),
+  // 6. Team
+  getTeam: () => cache.team,
   saveTeamMember: (member) => {
-    const list = dbService.getTeam();
+    const list = [...cache.team];
     if (member.id) {
       const idx = list.findIndex(m => m.id === member.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...member };
+      else list.push(member);
     } else {
       member.id = `member-${Date.now()}`;
       list.push(member);
     }
-    setStorageItem(STORAGE_KEYS.TEAM, list);
+    cache.team = list;
+    pushBin();
     return member;
   },
   deleteTeamMember: (id) => {
-    const list = dbService.getTeam();
-    const updated = list.filter(m => m.id !== id);
-    setStorageItem(STORAGE_KEYS.TEAM, updated);
+    cache.team = cache.team.filter(m => m.id !== id);
+    pushBin();
   },
 
-  // 7. Personal Projects API
-  getPersonalProjects: () => getStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, []),
+  // 7. Personal Projects
+  getPersonalProjects: () => cache.personal_projects,
   savePersonalProject: (project) => {
-    const list = dbService.getPersonalProjects();
+    const list = [...cache.personal_projects];
     if (project.id) {
       const idx = list.findIndex(p => p.id === project.id);
       if (idx !== -1) list[idx] = { ...list[idx], ...project };
+      else list.push(project);
     } else {
       project.id = `pproj-${Date.now()}`;
       list.push(project);
     }
-    setStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, list);
+    cache.personal_projects = list;
+    pushBin();
     return project;
   },
   deletePersonalProject: (id) => {
-    const list = dbService.getPersonalProjects();
-    const updated = list.filter(p => p.id !== id);
-    setStorageItem(STORAGE_KEYS.PERSONAL_PROJECTS, updated);
-  }
+    cache.personal_projects = cache.personal_projects.filter(p => p.id !== id);
+    pushBin();
+  },
 };

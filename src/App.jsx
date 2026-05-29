@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { onDataChange } from './services/db';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import DashboardView from './components/DashboardView';
@@ -32,12 +33,20 @@ function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
   
-  // A refresh trigger counter to force child components to pull latest LocalStorage state
+  // A refresh trigger counter to force child components to re-read from cache
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
+  // Subscribe to remote data changes (JSONBin polling)
+  useEffect(() => {
+    const unsubscribe = onDataChange(() => {
+      setRefreshTrigger(prev => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
 
   // Convert and format monetary figures based on selected currency
   const formatAmount = (usdValue) => {
