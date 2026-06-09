@@ -699,7 +699,7 @@ export default function ProjectsView({ activeTab, setSelectedProject, refreshTri
 
       {/* Add / Edit Workspace Modal */}
       {showAddModal && createPortal(
-        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-[9999] p-4 pl-64 pt-10 animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 animate-fade-in overflow-y-auto">
           <div className="glass-panel w-full max-w-2xl rounded-2xl border border-slate-800 p-6 shadow-2xl animate-fade-in-up relative mb-10">
             <button
               onClick={() => setShowAddModal(false)}
